@@ -1,6 +1,7 @@
 import express from 'express';
 import client from 'prom-client';
 import { oracleLockRegistry } from '../services/oracle/lockMetrics.js';
+import { metricsAuthMiddleware } from '../telemetry/middleware.js';
 
 const router = express.Router();
 
@@ -89,6 +90,24 @@ export const activeCompilationJobs = new client.Gauge({
   help: 'Number of active compilation jobs currently running',
 });
 register.registerMetric(activeCompilationJobs);
+
+// [BE-10] Alias required by OpenMetrics spec / issue #1758
+// `compiler_jobs_active` is the canonical name; `active_compilation_jobs`
+// is retained for backwards-compatibility with existing dashboards.
+export const compilerJobsActive = new client.Gauge({
+  name: 'compiler_jobs_active',
+  help: 'Number of compiler jobs currently active (canonical OpenMetrics name)',
+});
+register.registerMetric(compilerJobsActive);
+
+// [BE-10] RPC latency histogram in milliseconds (issue #1758)
+export const rpcLatencyMilliseconds = new client.Histogram({
+  name: 'rpc_latency_milliseconds',
+  help: 'Latency of RPC calls in milliseconds',
+  labelNames: ['endpoint', 'status'],
+  buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+});
+register.registerMetric(rpcLatencyMilliseconds);
 
 export const httpErrorsTotal = new client.Counter({
   name: 'http_errors_total',
@@ -295,7 +314,7 @@ export const sorobanRpcCallsTotal = new client.Counter({
 });
 register.registerMetric(sorobanRpcCallsTotal);
 
-router.get('/', async (req, res) => {
+router.get('/', metricsAuthMiddleware(), async (req, res) => {
   try {
     updateSystemMetrics();
     res.set('Content-Type', register.contentType);

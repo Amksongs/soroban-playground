@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 
 import { initializeTracing } from './tracing.js';
+import { tracePropagationMiddleware } from './telemetry/middleware.js';
 import config from './config/index.js';
 import { validateEnv } from './config/env.js';
 if (process.env.NODE_ENV !== 'test') {
@@ -263,6 +264,13 @@ app.use(rejectPrototypePollution);
 app.use(cookieParser());
 app.use(compressionMiddleware);
 app.use(http2PushMiddleware);
+
+// [BE-10] W3C Trace Context propagation — extracts `traceparent` / `tracestate`
+// from incoming requests and exposes the resolved trace ID as `X-Trace-Id` on
+// every response. The global W3CTraceContextPropagator registered by
+// telemetry/tracer.ts handles the OTel-level propagation; this middleware
+// surfaces the trace ID at the HTTP layer.
+app.use(tracePropagationMiddleware());
 
 // Strict Transport Security (HSTS) headers
 app.use((req, res, next) => {
