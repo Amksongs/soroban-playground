@@ -108,6 +108,7 @@ members = [
     "contracts/reputation",
     "contracts/reputation-system",
     "contracts/royalty",
+    "contracts/royalty-splitter",
     "contracts/simulation-engine",
     "contracts/social-media",
     "contracts/soulbound-token",
