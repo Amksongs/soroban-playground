@@ -1,5 +1,6 @@
 "use client";
 
+import { useModalAccessibility } from "@/accessibility/useModalAccessibility";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { ONBOARDING_STEPS, ONBOARDING_STORAGE_KEY, type OnboardingStep } from "./onboardingSteps";
@@ -123,6 +124,8 @@ export default function OnboardingTour() {
     [persist],
   );
 
+  useModalAccessibility(cardRef, isOpen, () => finish(false));
+
   // First-visit auto start.
   useEffect(() => {
     const progress = readProgress();
@@ -169,6 +172,7 @@ export default function OnboardingTour() {
         finish(false);
         return;
       }
+      if (event.target !== cardRef.current) return;
       if (event.key === "ArrowRight" || event.key === "Enter") {
         event.preventDefault();
         if (isLast) finish(true);

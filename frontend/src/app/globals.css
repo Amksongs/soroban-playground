@@ -245,3 +245,20 @@ a {
     animation: none;
   }
 }
+
+/* Keyboard navigation stays visible across utility styles and both themes. */
+:where(a, button, input, select, textarea, summary, [tabindex], [contenteditable="true"]):focus-visible {
+  outline: 3px solid hsl(var(--foreground)) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px hsl(var(--background));
+}
+.skip-navigation {
+  position: fixed; top: 0; left: 1rem; z-index: 10000;
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+  transform: translateY(-150%);
+}
+.skip-navigation:focus-within { transform: translateY(0); }
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight !important; }
+}

@@ -56,6 +56,7 @@ import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
 import { PreflightChecklist, type DeploymentPlan } from "@/components/Deploy/PreflightChecklist";
 import { MediaCollaborationPanel } from "@/collaboration/MediaCollaborationPanel";
+import { announceToScreenReader } from "@/lib/accessibility";
 import CallPanel from "@/components/CallPanel";
 import StateMachineModeler from "@/components/Visualizer/StateMachineModeler";
 import StorageViewer from "@/components/StorageViewer";
@@ -679,6 +680,7 @@ export default function Home() {
     setTransactionGraph({ nodes: [], edges: [] });
     setSelectedGraphNodeId(undefined);
     appendLog("[compile] Sending source to backend...");
+    announceToScreenReader("Compilation started.");
 
     // Start compilation in Zustand store
     useCompileStore.getState().startCompile();
@@ -697,6 +699,7 @@ export default function Home() {
           : "size unavailable"
       } · ${payload.cached ? "cache hit" : "fresh build"}`;
       setCompileSummary(summaryMsg);
+      announceToScreenReader("Compilation succeeded. Contract is ready to deploy.");
 
       // Complete compilation in Zustand store
       useCompileStore.getState().successCompile(summaryMsg);
@@ -720,6 +723,7 @@ export default function Home() {
     } catch (error) {
       const message = formatApiError(error);
       setCompileError(message);
+      announceToScreenReader(`Compilation failed: ${message}`, "assertive");
       appendLog(`[error] Compile failed: ${message}`);
 
       // Fail compilation in Zustand store
@@ -736,6 +740,7 @@ export default function Home() {
     setIsDeploying(true);
     setLastDeployMessage(undefined);
     appendLog(`[deploy] Requesting ${deploymentPlan.network} deployment...`);
+    announceToScreenReader(`Deployment to ${deploymentPlan.network} started.`);
 
     try {
       const payload = await requestJson<{
@@ -757,6 +762,7 @@ export default function Home() {
       });
 
       setContractId(payload.contractId);
+      announceToScreenReader(`Deployment succeeded on ${payload.network}. Contract address: ${payload.contractId}`);
       setContractAbi((prev) =>
         prev.length > 0 ? prev : parseContractAbiFromSource(code),
       );
@@ -783,6 +789,7 @@ export default function Home() {
       appendLog(`[deploy] Contract ID: ${payload.contractId}`);
     } catch (error) {
       appendLog(`[error] Deploy failed: ${formatApiError(error)}`);
+      announceToScreenReader(`Deployment failed: ${formatApiError(error)}`, "assertive");
     } finally {
       setIsDeploying(false);
     }
@@ -2521,7 +2528,7 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="flex-1">
+        <section aria-label="Playground workspace" className="flex-1">
           <MobileEditor
             editor={
               <section className="flex min-h-[560px] flex-col border-b border-white/8 p-4 lg:border-b-0 lg:border-r">
@@ -2936,7 +2943,7 @@ export default function Home() {
               </aside>
             }
           />
-        </main>
+        </section>
       </div>
     </div>
   );

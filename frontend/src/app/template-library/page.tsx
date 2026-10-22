@@ -158,7 +158,7 @@ export default function TemplateLibraryPage() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0">
+        <section className="flex-1 min-w-0">
           {/* Search bar */}
           <FavoritesSearchBar
             onSearch={setSearchQuery}
@@ -294,7 +294,7 @@ export default function TemplateLibraryPage() {
               })}
             </div>
           )}
-        </main>
+        </section>
       </div>
     </div>
   );
