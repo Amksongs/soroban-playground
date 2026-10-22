@@ -85,6 +85,7 @@ members = [
     "contracts/nft-enumerable",
     "contracts/nft-fractional",
     "contracts/nft-marketplace",
+    "contracts/nft-rental",
     "contracts/options",
     "contracts/options-protocol",
     "contracts/options-vault",
