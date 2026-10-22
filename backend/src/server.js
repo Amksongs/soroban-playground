@@ -121,6 +121,7 @@ import deployQueueRoute from './routes/deployQueue.js';
 import backupRoute from './routes/backup.js';
 
 import { startBackupScheduler } from './services/backupScheduler.js';
+import { startAuditPartitionWorkerFromEnv } from './database/auditPartitionWorker.js';
 
 import {
   initializeQueues,
@@ -340,6 +341,8 @@ setupSwagger(app);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+let auditPartitionWorker = { stop: async () => {} };
+
 async function start() {
   try {
     await initializeDatabase();
@@ -358,6 +361,7 @@ async function start() {
     startCleanupWorker();
     startMemoryLeakDetector();
     startBackupScheduler();
+    auditPartitionWorker = startAuditPartitionWorkerFromEnv();
     startWebhookDispatcher();
     setupWebsocketServer(server);
     server.listen(PORT, () => {
@@ -376,6 +380,7 @@ async function shutdown(signal) {
     stopOriginCacheRefresh();
     stopCleanupWorker();
     stopWebhookDispatcher();
+    await auditPartitionWorker.stop();
     await closeWebsocketServer();
     await oracleWorkerPool.stop();
     await contractEventIndexer.stop();
