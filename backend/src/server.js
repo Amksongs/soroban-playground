@@ -157,6 +157,11 @@ import queuesRoute from './routes/queues.js';
 import rpcRoute from './routes/rpc.js';
 
 import { validateStartupEnv } from './config/envSchema.js';
+import {
+  mountGrpcGateway,
+  shutdownGrpcServer,
+  startGrpcServer,
+} from './grpc/index.js';
 
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = path.dirname(_filename);
@@ -184,6 +189,8 @@ if (process.env.NODE_ENV !== 'test') {
 const app = express();
 app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal', '10.0.0.0/8']);
 let server;
+let grpcServer;
+let grpcGateway;
 let websocketRedisClient = null;
 
 // TLS/SSL Hardening configuration — HTTP/2 ALPN prefers h2, falls back to 1.1.
@@ -332,6 +339,11 @@ app.use('/api/queues', queuesRoute);
 app.use('/api/rpc', rpcRoute);
 app.use('/metrics', metricsRoute);
 
+const grpcEnabled = process.env.GRPC_ENABLED !== 'false';
+if (grpcEnabled) {
+  grpcGateway = mountGrpcGateway(app);
+}
+
 app.use(negotiateApiVersion);
 app.use(deprecationHeaders);
 
@@ -364,6 +376,36 @@ async function start() {
     auditPartitionWorker = startAuditPartitionWorkerFromEnv();
     startWebhookDispatcher();
     setupWebsocketServer(server);
+    if (grpcEnabled) {
+      const host = process.env.GRPC_HOST || '127.0.0.1';
+      const tls = process.env.GRPC_TLS === 'true';
+      const normalizedHost = host.toLowerCase();
+      const isLoopback =
+        normalizedHost === 'localhost' ||
+        normalizedHost === '::1' ||
+        normalizedHost.startsWith('127.');
+      if (
+        process.env.NODE_ENV === 'production' &&
+        !tls &&
+        !isLoopback
+      ) {
+        throw new Error(
+          'GRPC_TLS must be enabled before exposing gRPC beyond loopback'
+        );
+      }
+      if (tls && (!httpsOptions.key || !httpsOptions.cert)) {
+        throw new Error(
+          'GRPC_TLS requires SSL_KEY_PATH and SSL_CERT_PATH certificates'
+        );
+      }
+      grpcServer = await startGrpcServer(new Map(), new Map(), {
+        host,
+        port: Number(process.env.GRPC_PORT || 50051),
+        tls,
+        certChain: tls ? Buffer.from(httpsOptions.cert) : undefined,
+        privateKey: tls ? Buffer.from(httpsOptions.key) : undefined,
+      });
+    }
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
     });
@@ -382,6 +424,8 @@ async function shutdown(signal) {
     stopWebhookDispatcher();
     await auditPartitionWorker.stop();
     await closeWebsocketServer();
+    grpcGateway?.close();
+    if (grpcServer) await shutdownGrpcServer(grpcServer);
     await oracleWorkerPool.stop();
     await contractEventIndexer.stop();
     await LedgerSyncService.stop();
