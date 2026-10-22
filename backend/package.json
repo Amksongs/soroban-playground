@@ -4,6 +4,9 @@
   "description": "Soroban Playground backend API",
   "main": "src/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "build": "npm run lint:check && npm run format:check && node --check src/server.js",
     "lint": "npx eslint . --ext .js,.cjs,.mjs,.ts --fix",
@@ -20,6 +23,7 @@
     "test:e2e": "jest tests/syntheticAssets.e2e.test.js",
     "test:synthetic": "jest tests/syntheticAssets.*.test.js",
     "test:all": "npm run test:unit && npm run test:synthetic",
+    "test:jsonpatch": "jest tests/jsonPatchSync.*.test.js",
     "init-db": "SEED_SAMPLE_DATA=false knex migrate:latest && node src/database/init.js --no-seed",
     "backup:restore": "node src/services/backupService.js restore",
     "migrate:make": "knex migrate:make",
@@ -28,7 +32,7 @@
     "persisted-query:warm": "node scripts/warm-persisted-queries.js",
     "load:http": "k6 run load-tests/http.js",
     "load:ws": "k6 run load-tests/websocket.js",
-    "dlq": "node scripts/dlq.js"
+    "dlq": "node scripts/dl.js"
   },
   "keywords": [
     "soroban",
@@ -42,13 +46,18 @@
     "@aws-sdk/lib-storage": "^3.600.0",
     "@bull-board/api": "^9.4.0",
     "@bull-board/express": "^9.4.0",
+    "@grpc/grpc-js": "^1.14.6",
+    "@grpc/proto-loader": "^0.8.1",
     "@opentelemetry/api": "^1.8.0",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",
+    "@opentelemetry/core": "^2.11.0",
     "@opentelemetry/exporter-jaeger": "^2.10.0",
     "@opentelemetry/exporter-prometheus": "^0.222.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.222.0",
     "@opentelemetry/exporter-zipkin": "^2.7.1",
     "@opentelemetry/instrumentation-express": "^0.70.0",
     "@opentelemetry/instrumentation-ioredis": "^0.70.0",
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@stellar/stellar-sdk": "^17.0.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -60,6 +69,7 @@
     "envalid": "^8.2.0",
     "express": "^4.21.2",
     "express-rate-limit": "^8.3.1",
+    "fast-json-patch": "^3.1.0",
     "graphql": "^16.13.2",
     "graphql-query-complexity": "^2.0.0",
     "graphql-yoga": "^5.21.0",
@@ -99,6 +109,7 @@
     "jest": "^30.5.2",
     "js-yaml": "^3.15.1",
     "nodemon": "^3.1.14",
+    "pg": "^8.23.1",
     "prettier": "^3.2.5",
     "supertest": "^7.0.0"
   }

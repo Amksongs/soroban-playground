@@ -55,7 +55,9 @@ import Console from "@/components/Console";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
 import { PreflightChecklist, type DeploymentPlan } from "@/components/Deploy/PreflightChecklist";
+import { MediaCollaborationPanel } from "@/collaboration/MediaCollaborationPanel";
 import CallPanel from "@/components/CallPanel";
+import StateMachineModeler from "@/components/Visualizer/StateMachineModeler";
 import StorageViewer from "@/components/StorageViewer";
 import TransactionCallGraph from "@/components/TransactionCallGraph";
 import StorageTimeline from "@/components/StorageTimeline";
@@ -416,6 +418,10 @@ export default function Home() {
   const [contractAbi, setContractAbi] = useState<
     Array<{ name: string; inputs?: Array<{ name: string; type: string }> }>
   >([]);
+  const [lifecyclePrefill, setLifecyclePrefill] = useState<{
+    functionName: string;
+    args: Record<string, unknown>;
+  } | null>(null);
 
   const activeSnapshot = useMemo(
     () =>
@@ -2426,6 +2432,7 @@ export default function Home() {
   return (
     <div className="min-h-screen px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/60 shadow-[0_30px_120px_rgba(2,8,23,0.7)] backdrop-blur">
+        <MediaCollaborationPanel wsUrl={`${DEFAULT_API_BASE_URL.replace(/^http/, "ws")}/ws`} />
         <header className="border-b border-white/8 bg-slate-950/70 px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
@@ -2643,6 +2650,27 @@ export default function Home() {
                   isInvoking={isInvoking}
                   contractId={contractId}
                   abi={contractAbi}
+                  prefill={lifecyclePrefill}
+                />
+                <StateMachineModeler
+                  sourceCode={code}
+                  abi={contractAbi}
+                  contractId={contractId}
+                  currentState={
+                    typeof storage.state === "string"
+                      ? storage.state
+                      : typeof storage.lifecycle === "string"
+                        ? storage.lifecycle
+                        : typeof storage.status === "string"
+                          ? storage.status
+                          : null
+                  }
+                  onTransitionSelected={(transition, args) => {
+                    setLifecyclePrefill({
+                      functionName: transition.functionName,
+                      args,
+                    });
+                  }}
                 />
                 <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
                   <div className="mb-3 flex items-center justify-between">
