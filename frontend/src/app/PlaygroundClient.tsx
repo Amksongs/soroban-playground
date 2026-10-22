@@ -16,6 +16,7 @@ import {
   BookOpen,
   ChevronRight,
   Code2,
+  GitCompare,
   Globe,
   LoaderCircle,
   Orbit,
@@ -54,6 +55,7 @@ const TransactionCallGraphPanel = dynamic(
 import Console from "@/components/Console";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
+import ThreeWayDiffViewer from "@/components/Diff/ThreeWayDiffViewer";
 import CallPanel from "@/components/CallPanel";
 import StorageViewer from "@/components/StorageViewer";
 import TransactionCallGraph from "@/components/TransactionCallGraph";
@@ -392,6 +394,7 @@ export default function Home() {
     artifacts: 0,
   });
   const [contractId, setContractId] = useState<string>();
+  const [isDiffViewerOpen, setIsDiffViewerOpen] = useState(false);
   const [storage, setStorage] = useState<LedgerState>({});
   const [storageContextLabel, setStorageContextLabel] = useState<string>(
     "Latest contract snapshot",
@@ -2416,6 +2419,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
+      {isDiffViewerOpen && contractId && (
+        <div className="fixed inset-0 z-[95] bg-slate-950/85 p-4 backdrop-blur-sm">
+          <div className="mx-auto h-full max-w-[1500px]">
+            <ThreeWayDiffViewer
+              contractId={contractId}
+              apiBaseUrl={DEFAULT_API_BASE_URL}
+              localCode={code}
+              mainCode={DEFAULT_CODE}
+              onLocalCodeChange={setCode}
+              onClose={() => setIsDiffViewerOpen(false)}
+            />
+          </div>
+        </div>
+      )}
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/60 shadow-[0_30px_120px_rgba(2,8,23,0.7)] backdrop-blur">
         <header className="border-b border-white/8 bg-slate-950/70 px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -2577,6 +2594,15 @@ export default function Home() {
                   compileError={compileError}
                   contractId={contractId}
                 />
+                <button
+                  type="button"
+                  onClick={() => setIsDiffViewerOpen(true)}
+                  disabled={!contractId}
+                  className="flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <GitCompare size={15} />
+                  Semantic diff
+                </button>
                 <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
