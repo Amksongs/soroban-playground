@@ -99,6 +99,7 @@ members = [
     "contracts/profile-registry",
     "contracts/property-testing",
     "contracts/proxy-pattern",
+    "contracts/quadratic-grants",
     "contracts/quadratic-voting",
     "contracts/real-estate",
     "contracts/real-estate-oracle",
