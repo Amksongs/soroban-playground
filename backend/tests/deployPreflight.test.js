@@ -38,7 +38,11 @@ function fixture(overrides = {}) {
 }
 function harness(options = {}) {
   const fetch = jest.fn(async (url, request) => {
-    if (!request)
+    if (
+      !request?.body &&
+      !url.includes('/accounts/') &&
+      !url.includes('/ledgers?')
+    )
       return {
         ok: true,
         json: async () => ({
