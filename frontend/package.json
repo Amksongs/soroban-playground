@@ -18,6 +18,7 @@
     "@kurkle/color": "^0.4.0",
     "@ledgerhq/hw-transport-webhid": "^6.35.4",
     "@ledgerhq/hw-transport-webusb": "^6.29.12",
+    "@octokit/rest": "^20.1.2",
     "@monaco-editor/react": "^4.7.0",
     "@noble/curves": "^1.8.1",
     "@scalar/rust-fmt": "^0.3.0",

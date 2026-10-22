@@ -57,6 +57,7 @@ import DeployPanel from "@/components/DeployPanel";
 import { PreflightChecklist, type DeploymentPlan } from "@/components/Deploy/PreflightChecklist";
 import { MediaCollaborationPanel } from "@/collaboration/MediaCollaborationPanel";
 import { announceToScreenReader } from "@/lib/accessibility";
+import BranchConflictResolver from "@/components/Git/BranchConflictResolver";
 import CallPanel from "@/components/CallPanel";
 import StateMachineModeler from "@/components/Visualizer/StateMachineModeler";
 import StorageViewer from "@/components/StorageViewer";
@@ -2603,6 +2604,7 @@ export default function Home() {
                   compileError={compileError}
                   contractId={contractId}
                 />
+                <BranchConflictResolver code={code} onApplyCode={setCode} />
                 <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
