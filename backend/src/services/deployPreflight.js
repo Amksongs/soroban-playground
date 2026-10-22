@@ -60,7 +60,7 @@ export function deriveContractId(deployer, salt, passphrase) {
     ),
   });
   return StrKey.encodeContract(
-    hash(xdr.HashIdPreimage.envelopeTypeContractId(preimage).toXDR())
+    hash(xdr.HashIdPreimage.envelopeTypeContractId(preimage).toXdr())
   );
 }
 
@@ -131,7 +131,7 @@ export async function runDeployPreflight(input, deps = {}) {
     !wasm.subarray(0, 4).equals(Buffer.from([0, 97, 115, 109]))
   )
     throw new Error('The compiled artifact is not a valid WASM module');
-  const wasmHash = hash(wasm).toString('hex');
+  const wasmHash = Buffer.from(hash(wasm)).toString('hex');
   if (input.expectedWasmHash && input.expectedWasmHash !== wasmHash)
     throw new Error('The WASM artifact changed. Run pre-flight again.');
   const controller = new AbortController();
@@ -157,8 +157,8 @@ export async function runDeployPreflight(input, deps = {}) {
   try {
     const codeKey = xdr.LedgerKey.contractCode(
       new xdr.LedgerKeyContractCode({ hash: Buffer.from(wasmHash, 'hex') })
-    ).toXDR('base64');
-    const instanceKey = new Contract(contractId).getFootprint().toXDR('base64');
+    ).toXdr('base64');
+    const instanceKey = new Contract(contractId).getFootprint().toXdr('base64');
     const [account, ledgers, info, entries, fees] = await Promise.all([
       read(`${horizonUrl}/accounts/${publicKey}`),
       read(`${horizonUrl}/ledgers?order=desc&limit=1`),
@@ -209,7 +209,7 @@ export async function runDeployPreflight(input, deps = {}) {
         auth,
         'base64'
       ).credentials();
-      if (credentials.switch().name === 'sorobanCredentialsAddress')
+      if (credentials.type !== 'sorobanCredentialsSourceAccount')
         throw new Error(
           'Additional contract administrator authorization is required before deployment'
         );

@@ -92,11 +92,8 @@ describe('deployment pre-flight rules', () => {
       salt: Buffer.from(salt, 'hex'),
       wasmHash: hash(wasm),
     });
-    const host = op.body().invokeHostFunctionOp().hostFunction();
-    const operationPreimage =
-      host.switch().name === 'hostFunctionTypeCreateContractV2'
-        ? host.createContractV2().contractIdPreimage()
-        : host.createContract().contractIdPreimage();
+    const host = op.body.invokeHostFunctionOp.hostFunction;
+    const operationPreimage = host.value.contractIdPreimage;
     const envelope = xdr.HashIdPreimage.envelopeTypeContractId(
       new xdr.HashIdPreimageContractId({
         networkId: hash(Buffer.from(Networks.TESTNET)),
@@ -105,7 +102,7 @@ describe('deployment pre-flight rules', () => {
     );
     const { StrKey } = require('@stellar/stellar-sdk');
     expect(deriveContractId(deployer, salt, Networks.TESTNET)).toBe(
-      StrKey.encodeContract(hash(envelope.toXDR()))
+      StrKey.encodeContract(hash(envelope.toXdr()))
     );
     expect(deriveContractId(deployer, salt, Networks.TESTNET)).not.toBe(
       deriveContractId(deployer, salt, Networks.PUBLIC)
@@ -172,7 +169,7 @@ describe('deployment pre-flight rules', () => {
     expect(result.ready).toBe(true);
     expect(result.codeStatus).toBe('live');
     expect(result.deployer).toBe(deployer);
-    expect(result.wasmHash).toBe(hash(wasm).toString('hex'));
+    expect(result.wasmHash).toBe(Buffer.from(hash(wasm)).toString('hex'));
     expect(result.contractId).toBe(
       deriveContractId(deployer, salt, Networks.TESTNET)
     );
