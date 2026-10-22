@@ -16,6 +16,7 @@ import {
   BookOpen,
   ChevronRight,
   Code2,
+  GitCompare,
   Globe,
   LoaderCircle,
   Orbit,
@@ -59,6 +60,7 @@ import { MediaCollaborationPanel } from "@/collaboration/MediaCollaborationPanel
 import { announceToScreenReader } from "@/lib/accessibility";
 import BranchConflictResolver from "@/components/Git/BranchConflictResolver";
 import DeploymentShaderCanvas from "@/components/Celebration/DeploymentShaderCanvas";
+import ThreeWayDiffViewer from "@/components/Diff/ThreeWayDiffViewer";
 import CallPanel from "@/components/CallPanel";
 import StateMachineModeler from "@/components/Visualizer/StateMachineModeler";
 import StorageViewer from "@/components/StorageViewer";
@@ -404,6 +406,7 @@ export default function Home() {
     network: string;
     key: number;
   } | null>(null);
+  const [isDiffViewerOpen, setIsDiffViewerOpen] = useState(false);
   const [storage, setStorage] = useState<LedgerState>({});
   const [storageContextLabel, setStorageContextLabel] = useState<string>(
     "Latest contract snapshot",
@@ -2458,6 +2461,20 @@ export default function Home() {
           onClose={() => setDeploymentCelebration(null)}
         />
       )}
+      {isDiffViewerOpen && contractId && (
+        <div className="fixed inset-0 z-[95] bg-slate-950/85 p-4 backdrop-blur-sm">
+          <div className="mx-auto h-full max-w-[1500px]">
+            <ThreeWayDiffViewer
+              contractId={contractId}
+              apiBaseUrl={DEFAULT_API_BASE_URL}
+              localCode={code}
+              mainCode={DEFAULT_CODE}
+              onLocalCodeChange={setCode}
+              onClose={() => setIsDiffViewerOpen(false)}
+            />
+          </div>
+        </div>
+      )}
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/60 shadow-[0_30px_120px_rgba(2,8,23,0.7)] backdrop-blur">
         <MediaCollaborationPanel wsUrl={`${DEFAULT_API_BASE_URL.replace(/^http/, "ws")}/ws`} />
         <header className="border-b border-white/8 bg-slate-950/70 px-6 py-5">
@@ -2624,6 +2641,15 @@ export default function Home() {
                   contractId={contractId}
                 />
                 <BranchConflictResolver code={code} onApplyCode={setCode} />
+                <button
+                  type="button"
+                  onClick={() => setIsDiffViewerOpen(true)}
+                  disabled={!contractId}
+                  className="flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <GitCompare size={15} />
+                  Semantic diff
+                </button>
                 <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
