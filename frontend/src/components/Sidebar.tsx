@@ -1,5 +1,7 @@
 "use client";
 
+import { useModalAccessibility } from "@/accessibility/useModalAccessibility";
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -147,40 +149,13 @@ export default function SidebarShell({
     return () => query.removeEventListener("change", onChange);
   }, []);
 
+  useModalAccessibility(drawerRef, isOpen, closeDrawer);
   useEffect(() => {
     if (!isOpen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeDrawer();
-        return;
-      }
-      if (event.key !== "Tab" || !drawerRef.current) return;
-
-      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [isOpen, closeDrawer]);
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen]);
 
   // Touch: swipe left on the drawer to dismiss it.
   const handleTouchStart = (event: React.TouchEvent) => {
@@ -282,6 +257,10 @@ export default function SidebarShell({
 
       {/* Desktop Sidebar */}
       <aside
+        id="primary-navigation"
+        role="navigation"
+        aria-label="Primary navigation"
+        tabIndex={-1}
         data-tour="sidebar"
         className={`fixed inset-y-0 left-0 z-20 hidden md:flex flex-col bg-slate-950/80 border-r border-slate-800/60 backdrop-blur-xl transition-all duration-300 ${
           collapsed ? "w-20" : "w-64"
@@ -580,6 +559,7 @@ export default function SidebarShell({
         >
           <div className="flex items-center gap-3" suppressHydrationWarning>
             <button
+              id="primary-navigation-mobile"
               ref={hamburgerRef}
               onClick={() => setIsOpen(true)}
               className="flex items-center justify-center min-h-[44px] min-w-[44px] -ml-2 rounded-lg text-slate-400 hover:bg-white/5 md:hidden"
@@ -662,7 +642,7 @@ export default function SidebarShell({
         </header>
 
         {/* Dynamic Children Panel */}
-        <main className="flex-1" data-tour="main">
+        <main id="main-content" tabIndex={-1} className="flex-1" data-tour="main">
           {children}
         </main>
       </div>

@@ -1018,7 +1018,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1.1fr)_420px]">
+      <section className="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1.1fr)_420px]">
         <section className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <MetricCard
@@ -1667,7 +1667,7 @@ export default function Home() {
             </div>
           </Panel>
         </aside>
-      </main>
+      </section>
     </div>
   );
 }
