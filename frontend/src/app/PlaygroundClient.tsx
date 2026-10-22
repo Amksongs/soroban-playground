@@ -54,6 +54,7 @@ const TransactionCallGraphPanel = dynamic(
 import Console from "@/components/Console";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
+import DeploymentShaderCanvas from "@/components/Celebration/DeploymentShaderCanvas";
 import CallPanel from "@/components/CallPanel";
 import StorageViewer from "@/components/StorageViewer";
 import TransactionCallGraph from "@/components/TransactionCallGraph";
@@ -392,6 +393,11 @@ export default function Home() {
     artifacts: 0,
   });
   const [contractId, setContractId] = useState<string>();
+  const [deploymentCelebration, setDeploymentCelebration] = useState<{
+    contractId: string;
+    network: string;
+    key: number;
+  } | null>(null);
   const [storage, setStorage] = useState<LedgerState>({});
   const [storageContextLabel, setStorageContextLabel] = useState<string>(
     "Latest contract snapshot",
@@ -766,6 +772,11 @@ export default function Home() {
 
       appendLog(`[deploy] ${payload.message}`);
       appendLog(`[deploy] Contract ID: ${payload.contractId}`);
+      setDeploymentCelebration({
+        contractId: payload.contractId,
+        network: payload.network || "testnet",
+        key: Date.now(),
+      });
     } catch (error) {
       appendLog(`[error] Deploy failed: ${formatApiError(error)}`);
     } finally {
@@ -2416,6 +2427,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
+      {deploymentCelebration && (
+        <DeploymentShaderCanvas
+          key={deploymentCelebration.key}
+          contractId={deploymentCelebration.contractId}
+          network={deploymentCelebration.network}
+          onClose={() => setDeploymentCelebration(null)}
+        />
+      )}
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/60 shadow-[0_30px_120px_rgba(2,8,23,0.7)] backdrop-blur">
         <header className="border-b border-white/8 bg-slate-950/70 px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
