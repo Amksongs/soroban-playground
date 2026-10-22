@@ -38,6 +38,13 @@ function fixture(overrides = {}) {
 }
 function harness(options = {}) {
   const fetch = jest.fn(async (url, request) => {
+    if (!request)
+      return {
+        ok: true,
+        json: async () => ({
+          network_passphrase: options.horizonPassphrase || Networks.TESTNET,
+        }),
+      };
     if (url.includes('/accounts/'))
       return { ok: true, json: async () => fixture(options.account) };
     if (url.includes('/ledgers?'))
@@ -217,6 +224,11 @@ describe('deployment pre-flight rules', () => {
       'futurenet',
       'mainnet',
     ]);
+  });
+  test('Horizon and RPC must identify the same selected network', async () => {
+    await expect(
+      runDeployPreflight(input, harness({ horizonPassphrase: Networks.PUBLIC }))
+    ).rejects.toThrow('mismatch');
   });
   test('network errors are never represented as passing checks', async () => {
     const deps = harness();

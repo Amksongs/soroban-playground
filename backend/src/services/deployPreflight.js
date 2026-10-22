@@ -159,14 +159,19 @@ export async function runDeployPreflight(input, deps = {}) {
       new xdr.LedgerKeyContractCode({ hash: Buffer.from(wasmHash, 'hex') })
     ).toXdr('base64');
     const instanceKey = new Contract(contractId).getFootprint().toXdr('base64');
-    const [account, ledgers, info, entries, fees] = await Promise.all([
+    const [account, ledgers, info, entries, fees, horizon] = await Promise.all([
       read(`${horizonUrl}/accounts/${publicKey}`),
       read(`${horizonUrl}/ledgers?order=desc&limit=1`),
       rpc('getNetwork'),
       rpc('getLedgerEntries', { keys: [codeKey, instanceKey] }),
       rpc('getFeeStats'),
+      read(horizonUrl),
     ]);
-    if (info.passphrase !== passphrase || account.account_id !== publicKey)
+    if (
+      info.passphrase !== passphrase ||
+      horizon.network_passphrase !== passphrase ||
+      account.account_id !== publicKey
+    )
       throw new Error('Network or deployer identity mismatch');
     const ledger = ledgers._embedded.records[0];
     const code = entries.entries?.find((entry) => entry.key === codeKey);
