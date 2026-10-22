@@ -54,6 +54,7 @@ const TransactionCallGraphPanel = dynamic(
 import Console from "@/components/Console";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
+import { PreflightChecklist, type DeploymentPlan } from "@/components/Deploy/PreflightChecklist";
 import CallPanel from "@/components/CallPanel";
 import StorageViewer from "@/components/StorageViewer";
 import TransactionCallGraph from "@/components/TransactionCallGraph";
@@ -144,6 +145,7 @@ type CompileResponse = {
   logs?: string[];
   artifact?: {
     name: string;
+    path?: string;
     sizeBytes: number;
     createdAt?: string;
   };
@@ -409,6 +411,7 @@ export default function Home() {
   const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string>();
   const [lastArtifactName, setLastArtifactName] =
     useState<string>("contract.wasm");
+  const [deploymentPlan, setDeploymentPlan] = useState<DeploymentPlan | null>(null);
   const [lastDeployMessage, setLastDeployMessage] = useState<string>();
   const [contractAbi, setContractAbi] = useState<
     Array<{ name: string; inputs?: Array<{ name: string; type: string }> }>
@@ -477,7 +480,7 @@ export default function Home() {
 
   const appendLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev, msg]);
-  }, []);
+  }, [setLogs]);
 
   useEffect(() => {
     setContractAbi(parseContractAbiFromSource(code));
@@ -658,6 +661,7 @@ export default function Home() {
   }
 
   const handleCompile = async () => {
+    setDeploymentPlan(null);
     setIsCompiling(true);
     setCompileError(null);
     setCompileSummary(undefined);
@@ -680,7 +684,7 @@ export default function Home() {
       const compileLogs = payload.logs ?? [];
 
       setHasCompiled(true);
-      setLastArtifactName(payload.artifact?.name ?? "contract.wasm");
+      setLastArtifactName(payload.artifact?.path ?? payload.artifact?.name ?? "contract.wasm");
       const summaryMsg = `${payload.message} · ${payload.artifact?.name ?? "artifact"} · ${
         payload.artifact?.sizeBytes
           ? `${(payload.artifact.sizeBytes / 1024).toFixed(1)} KB`
@@ -720,9 +724,12 @@ export default function Home() {
   };
 
   const handleDeploy = async () => {
+    if (!deploymentPlan || deploymentPlan.wasmPath !== lastArtifactName || Date.now() - deploymentPlan.checkedAt >= 30000) {
+      appendLog("[warn] Run valid pre-flight checks before deploying."); return;
+    }
     setIsDeploying(true);
     setLastDeployMessage(undefined);
-    appendLog("[deploy] Requesting testnet deployment...");
+    appendLog(`[deploy] Requesting ${deploymentPlan.network} deployment...`);
 
     try {
       const payload = await requestJson<{
@@ -738,7 +745,9 @@ export default function Home() {
       }>("/api/deploy", {
         wasmPath: lastArtifactName,
         contractName: "hello_contract",
-        network: "testnet",
+        network: deploymentPlan.network,
+        sourceAccount: deploymentPlan.sourceAccount,
+        preflight: deploymentPlan.preflight,
       });
 
       setContractId(payload.contractId);
@@ -2568,6 +2577,9 @@ export default function Home() {
             output={
               <aside className="flex flex-col gap-4 bg-slate-950/40 p-4">
                 <DeployPanel
+                  preflight={<PreflightChecklist apiBaseUrl={DEFAULT_API_BASE_URL} wasmPath={lastArtifactName} enabled={hasCompiled && !isCompiling && !isDeploying} onPlanChange={setDeploymentPlan} />}
+                  deploymentAllowed={Boolean(deploymentPlan)}
+                  networkLabel={deploymentPlan?.network || "selected network"}
                   onCompile={handleCompile}
                   onDeploy={handleDeploy}
                   isCompiling={isCompiling}

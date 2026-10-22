@@ -10,6 +10,9 @@ interface DeployPanelProps {
   compileSummary?: string;
   compileError?: string | null;
   contractId?: string;
+  preflight?: React.ReactNode;
+  deploymentAllowed?: boolean;
+  networkLabel?: string;
 }
 
 export default function DeployPanel({
@@ -21,6 +24,9 @@ export default function DeployPanel({
   compileSummary,
   compileError,
   contractId,
+  preflight,
+  deploymentAllowed = true,
+  networkLabel = "Testnet",
 }: DeployPanelProps) {
   const compileDisabledClasses = isCompiling
     ? "bg-gray-800 text-gray-500 cursor-not-allowed"
@@ -38,6 +44,7 @@ export default function DeployPanel({
         Build & Deploy
       </h3>
 
+      {preflight}
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={onCompile}
@@ -54,7 +61,7 @@ export default function DeployPanel({
 
         <button
           onClick={onDeploy}
-          disabled={!hasCompiled || isDeploying}
+          disabled={!hasCompiled || isDeploying || !deploymentAllowed}
           className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${deployDisabledClasses}`}
         >
           {isDeploying ? (
@@ -62,7 +69,7 @@ export default function DeployPanel({
           ) : (
             <Play size={16} className="mr-2" />
           )}
-          {isDeploying ? "Deploying..." : "Deploy to Testnet"}
+          {isDeploying ? "Deploying..." : `Deploy to ${networkLabel}`}
         </button>
       </div>
 
