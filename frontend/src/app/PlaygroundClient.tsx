@@ -54,6 +54,7 @@ const TransactionCallGraphPanel = dynamic(
 import Console from "@/components/Console";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
 import DeployPanel from "@/components/DeployPanel";
+import BranchConflictResolver from "@/components/Git/BranchConflictResolver";
 import CallPanel from "@/components/CallPanel";
 import StorageViewer from "@/components/StorageViewer";
 import TransactionCallGraph from "@/components/TransactionCallGraph";
@@ -2577,6 +2578,7 @@ export default function Home() {
                   compileError={compileError}
                   contractId={contractId}
                 />
+                <BranchConflictResolver code={code} onApplyCode={setCode} />
                 <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
