@@ -137,6 +137,7 @@ members = [
     "contracts/synthetic-assets",
     "contracts/testing-framework",
     "contracts/token-burn",
+    "contracts/token-index",
     "contracts/token-gated-access",
     "contracts/token-vesting",
     "contracts/token_contract",
