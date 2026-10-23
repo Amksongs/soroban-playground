@@ -243,9 +243,7 @@ impl MicroLending {
         };
 
         let loan_id = state.next_loan_id;
-        env.storage()
-            .instance()
-            .set(&DataKey::Loan(loan_id), &loan);
+        env.storage().instance().set(&DataKey::Loan(loan_id), &loan);
         state.next_loan_id += 1;
         env.storage().instance().set(&DataKey::State, &state);
 
@@ -317,9 +315,7 @@ impl MicroLending {
             loan.status = LoanStatus::Endorsed;
         }
 
-        env.storage()
-            .instance()
-            .set(&DataKey::Loan(loan_id), &loan);
+        env.storage().instance().set(&DataKey::Loan(loan_id), &loan);
 
         env.events().publish(
             (symbol_short!("endorsed"),),
@@ -363,12 +359,12 @@ impl MicroLending {
         loan.funded_ledger = env.ledger().sequence();
         loan.status = LoanStatus::Active;
 
-        env.storage()
-            .instance()
-            .set(&DataKey::Loan(loan_id), &loan);
+        env.storage().instance().set(&DataKey::Loan(loan_id), &loan);
 
-        env.events()
-            .publish((symbol_short!("funded"),), (lender, loan_id, loan.principal));
+        env.events().publish(
+            (symbol_short!("funded"),),
+            (lender, loan_id, loan.principal),
+        );
         Ok(())
     }
 
@@ -448,13 +444,16 @@ impl MicroLending {
             );
         }
 
-        env.storage()
-            .instance()
-            .set(&DataKey::Loan(loan_id), &loan);
+        env.storage().instance().set(&DataKey::Loan(loan_id), &loan);
 
         env.events().publish(
             (symbol_short!("installment"),),
-            (borrower, loan_id, installment_amount, loan.installments_paid),
+            (
+                borrower,
+                loan_id,
+                installment_amount,
+                loan.installments_paid,
+            ),
         );
         Ok(installment_amount)
     }
@@ -482,8 +481,7 @@ impl MicroLending {
 
         // Compute when the next installment was due
         let ledgers_per_installment = loan.term_ledgers / loan.installment_count;
-        let next_due = loan.funded_ledger
-            + ledgers_per_installment * (loan.installments_paid + 1);
+        let next_due = loan.funded_ledger + ledgers_per_installment * (loan.installments_paid + 1);
         let current = env.ledger().sequence();
 
         if current < next_due + GRACE_LEDGERS {
@@ -523,20 +521,14 @@ impl MicroLending {
             // Return any remaining stake to the guarantor
             let remaining = e.stake - slash;
             if remaining > 0 {
-                tok.transfer(
-                    &env.current_contract_address(),
-                    &e.guarantor,
-                    &remaining,
-                );
+                tok.transfer(&env.current_contract_address(), &e.guarantor, &remaining);
             }
         }
 
         // Penalise borrower credit score
         Self::adjust_credit(&env, &loan.borrower, -CREDIT_PENALTY);
 
-        env.storage()
-            .instance()
-            .set(&DataKey::Loan(loan_id), &loan);
+        env.storage().instance().set(&DataKey::Loan(loan_id), &loan);
 
         env.events().publish(
             (symbol_short!("defaulted"),),
@@ -607,11 +599,7 @@ impl MicroLending {
         for i in 0..loan.endorsements.len() {
             let e = loan.endorsements.get(i).unwrap();
             if e.stake > 0 {
-                tok.transfer(
-                    &env.current_contract_address(),
-                    &e.guarantor,
-                    &e.stake,
-                );
+                tok.transfer(&env.current_contract_address(), &e.guarantor, &e.stake);
             }
         }
     }

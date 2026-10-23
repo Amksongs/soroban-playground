@@ -138,7 +138,6 @@ async function applyOperation(db, table, record_id, operation, payload) {
   const columns = Object.keys(payload);
   if (!columns.length) throw new Error('Payload has no fields');
 
-
   if (operation === 'insert') {
     const placeholders = columns.map(() => '?').join(', ');
     await db.run(

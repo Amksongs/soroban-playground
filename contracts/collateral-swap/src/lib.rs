@@ -140,7 +140,11 @@ impl CollateralSwapAdapter {
         }
 
         // 1. Initial health factor validation
-        let initial_health = Self::get_health_factor(env.clone(), params.user.clone(), params.from_collateral.clone());
+        let initial_health = Self::get_health_factor(
+            env.clone(),
+            params.user.clone(),
+            params.from_collateral.clone(),
+        );
         if initial_health.health_factor_bps < MIN_SOLVENT_HF_BPS {
             return Err(Error::InsolventPosition);
         }
@@ -157,7 +161,12 @@ impl CollateralSwapAdapter {
 
         // 4. Withdraw original collateral from lending pool
         let updated_from_col = cur_from_col - params.from_amount;
-        set_user_collateral(&env, &params.user, &params.from_collateral, updated_from_col);
+        set_user_collateral(
+            &env,
+            &params.user,
+            &params.from_collateral,
+            updated_from_col,
+        );
 
         // 5. Swap original collateral on DEX to repay flash loan
         let dex_rate = get_dex_rate(&env, &params.from_collateral, &params.to_collateral);
@@ -173,12 +182,17 @@ impl CollateralSwapAdapter {
         // Any surplus from swap is deposited as additional collateral
         let surplus = dex_output - total_repay;
         if surplus > 0 {
-            let final_to_col = get_user_collateral(&env, &params.user, &params.to_collateral) + surplus;
+            let final_to_col =
+                get_user_collateral(&env, &params.user, &params.to_collateral) + surplus;
             set_user_collateral(&env, &params.user, &params.to_collateral, final_to_col);
         }
 
         // 6. Post-flight health factor check: MUST be >= initial health factor
-        let final_health = Self::get_health_factor(env.clone(), params.user.clone(), params.to_collateral.clone());
+        let final_health = Self::get_health_factor(
+            env.clone(),
+            params.user.clone(),
+            params.to_collateral.clone(),
+        );
         if final_health.health_factor_bps < initial_health.health_factor_bps {
             return Err(Error::HealthFactorDecreased);
         }

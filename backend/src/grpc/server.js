@@ -228,9 +228,7 @@ export async function startGrpcServer(
 
   server.addService(proto.IndexerService.service, {
     StreamEvents: authenticatedStream(streamEvents),
-    GetCompileStatus: authenticatedUnary(
-      makeGetCompileStatus(compileJobStore)
-    ),
+    GetCompileStatus: authenticatedUnary(makeGetCompileStatus(compileJobStore)),
     Deploy: authenticatedUnary(makeDeployHandler(deployJobStore)),
     HealthCheck: healthCheck,
   });

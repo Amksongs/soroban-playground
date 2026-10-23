@@ -30,7 +30,9 @@ export async function up(knex) {
         USING (tenant_id = app_current_tenant())
         WITH CHECK (tenant_id = app_current_tenant())
     `);
-    await knex.raw(`GRANT SELECT, INSERT, UPDATE, DELETE ON ${t} TO app_tenant`);
+    await knex.raw(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ${t} TO app_tenant`
+    );
   }
   await knex.raw(`GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_tenant`);
 }

@@ -18,12 +18,11 @@ mod types;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, Symbol, Vec};
 
 use crate::storage::{
-    get_admin, get_daily_snapshot, get_daily_snapshot_count, get_divisor,
-    get_latest_snapshot_time, get_oracle, get_token_info, get_token_list,
-    get_weekly_snapshot, get_weekly_snapshot_count, is_initialized, remove_token_info,
-    set_admin, set_daily_snapshot, set_daily_snapshot_count, set_divisor, set_initialized,
-    set_latest_snapshot_time, set_oracle, set_token_info, set_token_list,
-    set_weekly_snapshot, set_weekly_snapshot_count,
+    get_admin, get_daily_snapshot, get_daily_snapshot_count, get_divisor, get_latest_snapshot_time,
+    get_oracle, get_token_info, get_token_list, get_weekly_snapshot, get_weekly_snapshot_count,
+    is_initialized, remove_token_info, set_admin, set_daily_snapshot, set_daily_snapshot_count,
+    set_divisor, set_initialized, set_latest_snapshot_time, set_oracle, set_token_info,
+    set_token_list, set_weekly_snapshot, set_weekly_snapshot_count,
 };
 use crate::types::{Error, IndexSnapshot, IndexSummary, TokenInfo};
 
@@ -145,7 +144,8 @@ impl TokenIndex {
         set_token_list(&env, &token_list);
         remove_token_info(&env, &token);
 
-        let cap_before = Self::calculate_market_cap(&env) + (token_info.current_price * token_info.base_supply);
+        let cap_before =
+            Self::calculate_market_cap(&env) + (token_info.current_price * token_info.base_supply);
         let old_divisor = get_divisor(&env);
 
         let new_divisor = if token_list.is_empty() {

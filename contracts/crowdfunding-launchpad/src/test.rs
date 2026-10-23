@@ -64,8 +64,18 @@ fn test_double_initialize_fails() {
     let client = CrowdfundingLaunchpadClient::new(&env, &contract);
 
     let result = client.try_initialize(
-        &admin, &sale, &pay, &5_000_000, &20_000_000, &1_000_000, &1_000_000, &10_000, &10, &20,
-        &200, &5,
+        &admin,
+        &sale,
+        &pay,
+        &5_000_000,
+        &20_000_000,
+        &1_000_000,
+        &1_000_000,
+        &10_000,
+        &10,
+        &20,
+        &200,
+        &5,
     );
     assert_eq!(result, Err(Ok(Error::AlreadyInitialized)));
 }

@@ -43,7 +43,9 @@ pub fn get_flash_loan_fee_bps(env: &Env) -> i128 {
 }
 
 pub fn set_flash_loan_fee_bps(env: &Env, bps: i128) {
-    env.storage().instance().set(&DataKey::FlashLoanFeeBps, &bps);
+    env.storage()
+        .instance()
+        .set(&DataKey::FlashLoanFeeBps, &bps);
 }
 
 pub fn get_user_collateral(env: &Env, user: &Address, token: &Address) -> i128 {
@@ -54,9 +56,10 @@ pub fn get_user_collateral(env: &Env, user: &Address, token: &Address) -> i128 {
 }
 
 pub fn set_user_collateral(env: &Env, user: &Address, token: &Address, amount: i128) {
-    env.storage()
-        .persistent()
-        .set(&DataKey::UserCollateral(user.clone(), token.clone()), &amount);
+    env.storage().persistent().set(
+        &DataKey::UserCollateral(user.clone(), token.clone()),
+        &amount,
+    );
 }
 
 pub fn get_user_debt(env: &Env, user: &Address) -> i128 {

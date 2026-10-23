@@ -13,8 +13,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short,
-    Address, Bytes, BytesN, Env, Map, Symbol, Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Bytes, BytesN, Env,
+    Map, Symbol, Vec,
 };
 
 // ── Storage symbols (instance) ──────────────────────────────────────────────
@@ -117,12 +117,19 @@ impl StellarNamingService {
         renewal_fee: i128,
         grace_period_ledgers: u32,
     ) -> Result<(), Error> {
-        if env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::AlreadyInitialized);
         }
         admin.require_auth();
         env.storage().instance().set(&ADMIN_KEY, &admin);
-        env.storage().instance().set(&REG_FEE_KEY, &registration_fee);
+        env.storage()
+            .instance()
+            .set(&REG_FEE_KEY, &registration_fee);
         env.storage().instance().set(&RENEW_FEE_KEY, &renewal_fee);
         env.storage()
             .instance()
@@ -134,7 +141,12 @@ impl StellarNamingService {
     }
 
     fn ensure_initialized(env: &Env) -> Result<(), Error> {
-        if !env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if !env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::NotInitialized);
         }
         Ok(())
@@ -311,11 +323,7 @@ impl StellarNamingService {
     }
 
     /// Looks up a record on a domain.
-    pub fn get_record(
-        env: Env,
-        domain: BytesN<32>,
-        name: Symbol,
-    ) -> Result<RecordEntry, Error> {
+    pub fn get_record(env: Env, domain: BytesN<32>, name: Symbol) -> Result<RecordEntry, Error> {
         Self::ensure_initialized(&env)?;
         let key = DataKey::Domain(domain);
         let rec: DomainRecord = env
@@ -359,7 +367,10 @@ impl StellarNamingService {
             return Err(Error::AlreadyPrimary);
         }
         env.storage().persistent().set(&reverse_key, &domain);
-        env.events().publish((symbol_short!("rev"), symbol_short!("set")), (caller, domain));
+        env.events().publish(
+            (symbol_short!("rev"), symbol_short!("set")),
+            (caller, domain),
+        );
         Ok(())
     }
 
@@ -453,7 +464,10 @@ impl StellarNamingService {
         auc.commitments.set(bidder.clone(), commitment);
         env.storage().persistent().set(&key, &auc);
 
-        env.events().publish((symbol_short!("auc"), symbol_short!("bid")), (auction_id, bidder));
+        env.events().publish(
+            (symbol_short!("auc"), symbol_short!("bid")),
+            (auction_id, bidder),
+        );
         Ok(())
     }
 
@@ -499,8 +513,10 @@ impl StellarNamingService {
         }
 
         env.storage().persistent().set(&key, &auc);
-        env.events()
-            .publish((symbol_short!("auc"), symbol_short!("rev")), (auction_id, bidder, amount));
+        env.events().publish(
+            (symbol_short!("auc"), symbol_short!("rev")),
+            (auction_id, bidder, amount),
+        );
         Ok(())
     }
 

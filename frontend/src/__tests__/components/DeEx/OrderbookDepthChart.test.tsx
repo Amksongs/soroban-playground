@@ -56,8 +56,8 @@ describe("OrderbookDepthChart Mathematics", () => {
             { price: -1, quantity: 10 },
             { price: 0, quantity: 5 },
           ],
-          0.01
-        )
+          0.01,
+        ),
       ).toEqual([]);
     });
   });
@@ -126,7 +126,7 @@ describe("OrderbookDepthChart Mathematics", () => {
         aggBids,
         aggAsks,
         stats.bestBid,
-        stats.bestAsk
+        stats.bestAsk,
       );
 
       expect(sim).not.toBeNull();
@@ -156,7 +156,7 @@ describe("OrderbookDepthChart Mathematics", () => {
         aggBids,
         aggAsks,
         stats.bestBid,
-        stats.bestAsk
+        stats.bestAsk,
       );
 
       expect(sim).not.toBeNull();
@@ -187,7 +187,7 @@ describe("OrderbookDepthChart Mathematics", () => {
         aggBids,
         aggAsks,
         stats.bestBid,
-        stats.bestAsk
+        stats.bestAsk,
       );
       expect(sim).toBeNull();
     });
@@ -238,11 +238,15 @@ describe("OrderbookDepthChart UI Component", () => {
         asks={sampleAsks}
         baseSymbol="XLM"
         quoteSymbol="USDC"
-      />
+      />,
     );
 
-    expect(screen.getByText(/Orderbook Depth/i)).toBeInTheDocument();
-    expect(screen.getByText(/(XLM\/USDC)/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Orderbook Depth/i, { selector: "span" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/(XLM\/USDC)/i, { selector: "span" }),
+    ).toBeInTheDocument();
   });
 
   it("renders mid price and spread percentage badges", () => {
@@ -252,12 +256,14 @@ describe("OrderbookDepthChart UI Component", () => {
         asks={sampleAsks}
         baseSymbol="XLM"
         quoteSymbol="USDC"
-      />
+      />,
     );
 
     // Mid is (1.25 + 1.26) / 2 = 1.255 -> 1.25 (to 2 decimals)
     expect(screen.getByText(/Mid:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Spread:/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Spread:/i, { selector: "span" }),
+    ).toBeInTheDocument();
   });
 
   it("allows switching price aggregation steps (0.01, 0.1, 1.0)", () => {
@@ -266,7 +272,7 @@ describe("OrderbookDepthChart UI Component", () => {
         bids={sampleBids}
         asks={sampleAsks}
         defaultStep={0.01}
-      />
+      />,
     );
 
     const step01Btn = screen.getByRole("button", { name: "0.1" });
@@ -278,12 +284,7 @@ describe("OrderbookDepthChart UI Component", () => {
   });
 
   it("handles zoom controls", () => {
-    render(
-      <OrderbookDepthChart
-        bids={sampleBids}
-        asks={sampleAsks}
-      />
-    );
+    render(<OrderbookDepthChart bids={sampleBids} asks={sampleAsks} />);
 
     const zoomInBtn = screen.getByRole("button", { name: "Zoom in" });
     const zoomOutBtn = screen.getByRole("button", { name: "Zoom out" });
@@ -301,7 +302,7 @@ describe("OrderbookDepthChart UI Component", () => {
         bids={sampleBids}
         asks={sampleAsks}
         onLevelClick={handleLevelClick}
-      />
+      />,
     );
 
     const canvas = container.querySelector("canvas");
@@ -327,14 +328,14 @@ describe("OrderbookDepthChart UI Component", () => {
 
       // Drawer should render simulation details
       expect(
-        screen.getByText(/Simulated Market Buy|Simulated Market Sell/i)
+        screen.getByText(/Simulated Market Buy|Simulated Market Sell/i),
       ).toBeInTheDocument();
     }
   });
 
   it("supports high-frequency updates without stutter or memory leaks", () => {
     const { rerender } = render(
-      <OrderbookDepthChart bids={sampleBids} asks={sampleAsks} />
+      <OrderbookDepthChart bids={sampleBids} asks={sampleAsks} />,
     );
 
     // Simulate 35 rapid updates (simulating > 30 updates/sec)
@@ -352,7 +353,9 @@ describe("OrderbookDepthChart UI Component", () => {
       }
     });
 
-    expect(screen.getByText(/Orderbook Depth/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Orderbook Depth/i, { selector: "span" }),
+    ).toBeInTheDocument();
   });
 
   it("renders accessible screen reader summary", () => {
@@ -363,21 +366,34 @@ describe("OrderbookDepthChart UI Component", () => {
 
   it("does not substitute demo liquidity for an empty live book", () => {
     render(<OrderbookDepthChart bids={[]} asks={[]} />);
-    expect(screen.getByText("No orderbook liquidity available")).toBeInTheDocument();
+    expect(
+      screen.getByText("No orderbook liquidity available"),
+    ).toBeInTheDocument();
   });
 
   it("shows exact hovered level quantity and cumulative depth", () => {
     const { container } = render(
-      <OrderbookDepthChart bids={sampleBids} asks={sampleAsks} />
+      <OrderbookDepthChart bids={sampleBids} asks={sampleAsks} />,
     );
     const canvas = container.querySelector("canvas");
     if (!canvas) throw new Error("Expected chart canvas");
     jest.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
-      left: 0, top: 0, width: 600, height: 440, right: 600, bottom: 440,
-      x: 0, y: 0, toJSON: () => ({}),
+      left: 0,
+      top: 0,
+      width: 600,
+      height: 440,
+      right: 600,
+      bottom: 440,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
     });
     fireEvent.mouseMove(canvas, { clientX: 120, clientY: 180 });
-    expect(screen.getByText(/Hovered bid price/i)).toBeInTheDocument();
-    expect(screen.getByText(/cumulative depth/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Hovered bid price/i, { selector: "div:not(.sr-only)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/cumulative depth/i, { selector: "div:not(.sr-only)" }),
+    ).toBeInTheDocument();
   });
 });

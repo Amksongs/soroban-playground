@@ -118,7 +118,9 @@ fn test_add_and_verify_guardian() {
     let new_key = dummy_owner2(&env);
     client.initiate_recovery(&guardian, &new_key);
 
-    let proposal = client.get_recovery_proposal().expect("proposal should exist");
+    let proposal = client
+        .get_recovery_proposal()
+        .expect("proposal should exist");
     assert_eq!(proposal.approvals, 1);
     assert_eq!(proposal.new_owner, new_key);
 }

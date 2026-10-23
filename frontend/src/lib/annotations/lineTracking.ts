@@ -1,5 +1,3 @@
-import { Text } from '@codemirror/state';
-
 export interface LineAnchor {
   /** Stable identifier for the annotation thread. */
   id: string;
@@ -69,7 +67,7 @@ export function trackAnnotations(
   const dropped: string[] = [];
   for (const annotation of annotations) {
     const next = adjustLine(annotation.line, edits);
-    if (typeof documentLineCount === 'number' && next >= documentLineCount) {
+    if (typeof documentLineCount === "number" && next >= documentLineCount) {
       dropped.push(annotation.id);
       continue;
     }
@@ -83,8 +81,8 @@ export function trackAnnotations(
  * when a remote peer sends a full document snapshot instead of fine-grained edits.
  */
 export function diffLineEdits(before: string, after: string): LineEdit[] {
-  const beforeLines = before.split('\n');
-  const afterLines = after.split('\n');
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
   const edits: LineEdit[] = [];
   const max = Math.max(beforeLines.length, afterLines.length);
   let i = 0;
@@ -96,7 +94,11 @@ export function diffLineEdits(before: string, after: string): LineEdit[] {
     // Find the next common line to bound the edit range.
     let b = i;
     let a = i;
-    while (b < beforeLines.length && a < afterLines.length && beforeLines[b] !== afterLines[a]) {
+    while (
+      b < beforeLines.length &&
+      a < afterLines.length &&
+      beforeLines[b] !== afterLines[a]
+    ) {
       b += 1;
       a += 1;
     }
@@ -111,7 +113,10 @@ export function diffLineEdits(before: string, after: string): LineEdit[] {
  * Falls back to a full-document diff when the transaction changes are not
  * available.
  */
-export function editsFromTransaction(transaction: { state: Text }, previous: string): LineEdit[] {
+export function editsFromTransaction(
+  transaction: { state: { doc: { toString(): string } } },
+  previous: string,
+): LineEdit[] {
   const next = transaction.state.doc.toString();
   return diffLineEdits(previous, next);
 }

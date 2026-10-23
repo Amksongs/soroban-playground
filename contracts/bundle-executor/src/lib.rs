@@ -170,7 +170,8 @@ impl BundleExecutor {
             let call = calls.get(i).unwrap();
             // Invoke the target contract. Soroban panics on sub-call failure,
             // which rolls back the entire transaction atomically.
-            let _result: Val = env.invoke_contract(&call.contract, &call.function, call.args.clone());
+            let _result: Val =
+                env.invoke_contract(&call.contract, &call.function, call.args.clone());
         }
 
         // ── Evaluate post-conditions ──────────────────────────────────────────
@@ -188,10 +189,8 @@ impl BundleExecutor {
                 }
                 _ => {
                     // Unknown condition kind — fail the bundle
-                    env.events().publish(
-                        (symbol_short!("cond_err"),),
-                        (idx as u32, cond.kind),
-                    );
+                    env.events()
+                        .publish((symbol_short!("cond_err"),), (idx as u32, cond.kind));
                     panic!("UnknownConditionKind")
                 }
             };
@@ -244,7 +243,9 @@ impl BundleExecutor {
 
         for cond in conditions.iter() {
             match cond.kind {
-                KIND_MIN_BALANCE | KIND_MAX_BALANCE | KIND_BALANCE_INCREASED
+                KIND_MIN_BALANCE
+                | KIND_MAX_BALANCE
+                | KIND_BALANCE_INCREASED
                 | KIND_BALANCE_DECREASED => {}
                 _ => return Err(Error::UnknownConditionKind),
             }
@@ -253,10 +254,8 @@ impl BundleExecutor {
             }
         }
 
-        env.events().publish(
-            (symbol_short!("validate"),),
-            (call_count, conditions.len()),
-        );
+        env.events()
+            .publish((symbol_short!("validate"),), (call_count, conditions.len()));
 
         Ok(call_count)
     }
@@ -269,8 +268,7 @@ impl BundleExecutor {
 /// Returns 0 if the call fails (e.g. account not yet initialized).
 fn snapshot_balance(env: &Env, token: &Address, account: &Address) -> i128 {
     let args: Vec<Val> = vec![env, account.clone().into_val(env)];
-    let result: Val =
-        env.invoke_contract(token, &Symbol::new(env, "balance"), args);
+    let result: Val = env.invoke_contract(token, &Symbol::new(env, "balance"), args);
     let balance: i128 = result.into_val(env);
     balance
 }

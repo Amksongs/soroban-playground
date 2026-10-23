@@ -352,9 +352,7 @@ impl CrowdfundingLaunchpad {
             PUBLIC_CAP_BPS
         };
         let wallet_cap = config.hard_cap * cap_bps / BPS_DEN;
-        let new_total = existing
-            .checked_add(amount)
-            .ok_or(Error::Overflow)?;
+        let new_total = existing.checked_add(amount).ok_or(Error::Overflow)?;
         if new_total > wallet_cap {
             return Err(Error::AllocationCapExceeded);
         }
@@ -370,7 +368,11 @@ impl CrowdfundingLaunchpad {
 
         // ── Clamp to remaining hard-cap ──────────────────────────────────────
         let remaining = config.hard_cap - state.total_raised;
-        let clamped_amount = if amount > remaining { remaining } else { amount };
+        let clamped_amount = if amount > remaining {
+            remaining
+        } else {
+            amount
+        };
 
         // ── Transfer payment into escrow (this contract) ─────────────────────
         // In a real deployment: transfer payment_token from contributor to env.current_contract_address()

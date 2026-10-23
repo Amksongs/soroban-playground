@@ -21,9 +21,7 @@
 
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol};
 
 // ────────────────────────────────────────────────────────────────────────────
 // Data types
@@ -136,8 +134,12 @@ impl MutualInsurance {
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::TotalReserves, &0_i128);
-        env.storage().instance().set(&DataKey::TotalCoverage, &0_i128);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalReserves, &0_i128);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalCoverage, &0_i128);
         env.storage().instance().set(&DataKey::PolicyCount, &0_u64);
         env.storage().instance().set(&DataKey::ClaimCount, &0_u64);
     }
@@ -158,8 +160,14 @@ impl MutualInsurance {
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(current + amount));
 
-        let reserves: i128 = env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalReserves, &(reserves + amount));
+        let reserves: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalReserves, &(reserves + amount));
 
         env.events().publish((EVT_DEPOSIT,), (underwriter, amount));
     }
@@ -177,8 +185,16 @@ impl MutualInsurance {
             panic!("insufficient deposit");
         }
 
-        let reserves: i128 = env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0);
-        let coverage: i128 = env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0);
+        let reserves: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0);
+        let coverage: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0);
         let new_reserves = reserves - amount;
 
         // Enforce MCR: free reserves after withdrawal must be >= MCR_BPS% of coverage
@@ -188,14 +204,19 @@ impl MutualInsurance {
         }
 
         env.storage().persistent().set(&key, &(current - amount));
-        env.storage().instance().set(&DataKey::TotalReserves, &new_reserves);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalReserves, &new_reserves);
 
         env.events().publish((EVT_WITHDRAW,), (underwriter, amount));
     }
 
     /// Returns an underwriter's deposited balance.
     pub fn get_deposit(env: Env, underwriter: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Deposit(underwriter)).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Deposit(underwriter))
+            .unwrap_or(0)
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -229,8 +250,16 @@ impl MutualInsurance {
             panic!("duration_ledgers must be positive");
         }
 
-        let reserves: i128 = env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0);
-        let coverage: i128 = env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0);
+        let reserves: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0);
+        let coverage: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0);
         let new_coverage = coverage + coverage_amount;
 
         // MCR check: reserves (including new premium) must cover MCR of new total coverage
@@ -241,7 +270,11 @@ impl MutualInsurance {
         }
 
         // Issue policy
-        let id: u64 = env.storage().instance().get(&DataKey::PolicyCount).unwrap_or(0);
+        let id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::PolicyCount)
+            .unwrap_or(0);
         let start = env.ledger().sequence();
         let policy = PolicyData {
             holder: holder.clone(),
@@ -252,14 +285,23 @@ impl MutualInsurance {
             end_ledger: start + duration_ledgers,
             status: PolicyStatus::Active,
         };
-        env.storage().persistent().set(&DataKey::Policy(id), &policy);
-        env.storage().instance().set(&DataKey::PolicyCount, &(id + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(id), &policy);
+        env.storage()
+            .instance()
+            .set(&DataKey::PolicyCount, &(id + 1));
 
         // Credit premium to reserves
-        env.storage().instance().set(&DataKey::TotalReserves, &new_reserves);
-        env.storage().instance().set(&DataKey::TotalCoverage, &new_coverage);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalReserves, &new_reserves);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalCoverage, &new_coverage);
 
-        env.events().publish((EVT_POLICY,), (id, holder, coverage_amount));
+        env.events()
+            .publish((EVT_POLICY,), (id, holder, coverage_amount));
         id
     }
 
@@ -279,12 +321,20 @@ impl MutualInsurance {
         }
 
         policy.status = PolicyStatus::Expired;
-        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(policy_id), &policy);
 
         // Release locked coverage
-        let coverage: i128 = env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0);
+        let coverage: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0);
         let new_coverage = (coverage - policy.coverage_amount).max(0);
-        env.storage().instance().set(&DataKey::TotalCoverage, &new_coverage);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalCoverage, &new_coverage);
     }
 
     /// Fetch a policy by ID.
@@ -322,9 +372,15 @@ impl MutualInsurance {
 
         // Mark policy as claimed to prevent duplicate claims.
         policy.status = PolicyStatus::Claimed;
-        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(policy_id), &policy);
 
-        let id: u64 = env.storage().instance().get(&DataKey::ClaimCount).unwrap_or(0);
+        let id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ClaimCount)
+            .unwrap_or(0);
         let claim = ClaimData {
             policy_id,
             claimant: policy.holder.clone(),
@@ -335,7 +391,9 @@ impl MutualInsurance {
             status: ClaimStatus::Pending,
         };
         env.storage().persistent().set(&DataKey::Claim(id), &claim);
-        env.storage().instance().set(&DataKey::ClaimCount, &(id + 1));
+        env.storage()
+            .instance()
+            .set(&DataKey::ClaimCount, &(id + 1));
 
         env.events().publish((EVT_CLAIM,), (id, policy_id, amount));
         id
@@ -379,8 +437,11 @@ impl MutualInsurance {
             claim.status = ClaimStatus::Rejected;
         }
 
-        env.storage().persistent().set(&DataKey::Claim(claim_id), &claim);
-        env.events().publish((EVT_VOTE,), (claim_id, voter, approve));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Claim(claim_id), &claim);
+        env.events()
+            .publish((EVT_VOTE,), (claim_id, voter, approve));
     }
 
     /// Execute the payout for an approved claim.  Anyone may trigger this.
@@ -395,28 +456,45 @@ impl MutualInsurance {
             panic!("claim is not approved");
         }
 
-        let reserves: i128 = env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0);
+        let reserves: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0);
         if claim.amount > reserves {
             panic!("insufficient reserves to pay claim");
         }
 
         // Deduct from reserves
-        env.storage().instance().set(&DataKey::TotalReserves, &(reserves - claim.amount));
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalReserves, &(reserves - claim.amount));
 
         // Release coverage locked by this claim's policy
-        let coverage: i128 = env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0);
+        let coverage: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0);
         let policy: PolicyData = env
             .storage()
             .persistent()
             .get(&DataKey::Policy(claim.policy_id))
             .expect("policy not found");
         let new_coverage = (coverage - policy.coverage_amount).max(0);
-        env.storage().instance().set(&DataKey::TotalCoverage, &new_coverage);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalCoverage, &new_coverage);
 
         claim.status = ClaimStatus::Paid;
-        env.storage().persistent().set(&DataKey::Claim(claim_id), &claim);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Claim(claim_id), &claim);
 
-        env.events().publish((EVT_PAYOUT,), (claim_id, claim.claimant.clone(), claim.amount));
+        env.events().publish(
+            (EVT_PAYOUT,),
+            (claim_id, claim.claimant.clone(), claim.amount),
+        );
     }
 
     /// Fetch a claim by ID.
@@ -433,18 +511,32 @@ impl MutualInsurance {
 
     /// Returns total pool reserves.
     pub fn total_reserves(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0)
     }
 
     /// Returns total active coverage outstanding.
     pub fn total_coverage(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0)
     }
 
     /// Returns `true` if the pool meets the Minimum Capital Requirement.
     pub fn is_solvent(env: Env) -> bool {
-        let reserves: i128 = env.storage().instance().get(&DataKey::TotalReserves).unwrap_or(0);
-        let coverage: i128 = env.storage().instance().get(&DataKey::TotalCoverage).unwrap_or(0);
+        let reserves: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalReserves)
+            .unwrap_or(0);
+        let coverage: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalCoverage)
+            .unwrap_or(0);
         let required = coverage * MCR_BPS / 10_000;
         reserves >= required
     }

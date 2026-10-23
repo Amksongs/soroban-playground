@@ -1,8 +1,8 @@
-import type { editor as Monaco } from 'monaco-editor';
-import { Range as MonacoRange, editor as MonacoEditor } from 'monaco-editor';
-import type { AnnotationThread } from './yjsAnnotations';
+import type { editor as Monaco, IDisposable } from "monaco-editor";
+import { Range as MonacoRange, editor as MonacoEditor } from "monaco-editor";
+import type { AnnotationThread } from "./yjsAnnotations";
 
-export const GLYPH_DECORATION_ID = 'code-annotations';
+export const GLYPH_DECORATION_ID = "code-annotations";
 
 export interface GlyphHandlers {
   /** Called when the user clicks a comment glyph in the glyph margin. */
@@ -21,19 +21,19 @@ export function createGlyphManager(
   handlers: GlyphHandlers = {},
 ): GlyphManager {
   const decorationsCollection = editor.createDecorationsCollection([]);
-  const disposables: Monaco.IDisposable[] = [];
+  const disposables: IDisposable[] = [];
   const threadById = new Map<string, AnnotationThread>();
 
   const clickHandler = editor.onMouseDown((event) => {
     const target = event.target;
     const element = target.element as HTMLElement | null;
     if (!element) return;
-    const threadId = element.getAttribute('data-thread-id');
+    const threadId = element.getAttribute("data-thread-id");
     if (threadId && handlers.onClickThread) {
       handlers.onClickThread(threadId);
       return;
     }
-    const lineAttr = element.getAttribute('data-add-line');
+    const lineAttr = element.getAttribute("data-add-line");
     if (lineAttr != null && handlers.onAddThread) {
       handlers.onAddThread(Number(lineAttr));
     }
@@ -52,14 +52,14 @@ export function createGlyphManager(
       decorations.push({
         range: new MonacoRange(thread.line + 1, 1, thread.line + 1, 1),
         options: {
-          glyphMarginClassName: 'code-annotation-glyph',
+          glyphMarginClassName: "code-annotation-glyph",
           overviewRuler: {
-            color: '#f59e0b',
+            color: "#f59e0b",
             position: MonacoEditor.OverviewRulerLane.Left,
           },
           after: {
             content: String(count),
-            className: 'code-annotation-badge',
+            inlineClassName: "code-annotation-badge",
           },
         },
       });
@@ -73,7 +73,7 @@ export function createGlyphManager(
         decorations.push({
           range: new MonacoRange(line + 1, 1, line + 1, 1),
           options: {
-            glyphMarginClassName: 'code-annotation-add',
+            glyphMarginClassName: "code-annotation-add",
           },
         });
       }
@@ -85,25 +85,25 @@ export function createGlyphManager(
   const domNodeChange = editor.onDidChangeModelDecorations(() => {
     const domNode = editor.getDomNode();
     if (!domNode) return;
-    const nodes = domNode.querySelectorAll('.code-annotation-glyph');
+    const nodes = domNode.querySelectorAll(".code-annotation-glyph");
     nodes.forEach((node) => {
       const el = node as HTMLElement;
-      const line = el.getAttribute('data-line-number');
+      const line = el.getAttribute("data-line-number");
       if (line == null) return;
       const lineNumber = Number(line) - 1;
       for (const thread of threadById.values()) {
         if (thread.line === lineNumber) {
-          el.setAttribute('data-thread-id', thread.id);
+          el.setAttribute("data-thread-id", thread.id);
           break;
         }
       }
     });
-    const addNodes = domNode.querySelectorAll('.code-annotation-add');
+    const addNodes = domNode.querySelectorAll(".code-annotation-add");
     addNodes.forEach((node) => {
       const el = node as HTMLElement;
-      const line = el.getAttribute('data-line-number');
+      const line = el.getAttribute("data-line-number");
       if (line != null) {
-        el.setAttribute('data-add-line', String(Number(line) - 1));
+        el.setAttribute("data-add-line", String(Number(line) - 1));
       }
     });
   });

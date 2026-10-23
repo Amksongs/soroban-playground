@@ -8,8 +8,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short,
-    Address, BytesN, Env,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, BytesN, Env,
 };
 
 const ROOT_KEY: Symbol = symbol_short!("ROOT");
@@ -45,19 +44,32 @@ impl SparseMerkleRegistry {
     // ── Initialisation ──────────────────────────────────────────────────────
 
     pub fn initialize(env: Env, admin: Address, initial_root: BytesN<32>) -> Result<(), Error> {
-        if env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::AlreadyInitialized);
         }
         admin.require_auth();
         env.storage().instance().set(&ADMIN_KEY, &admin);
-        env.storage().persistent().set(&DataKey::Root, &initial_root);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Root, &initial_root);
         env.storage().instance().set(&INITIALIZED_KEY, &true);
-        env.events().publish((symbol_short!("init"),), (admin, initial_root));
+        env.events()
+            .publish((symbol_short!("init"),), (admin, initial_root));
         Ok(())
     }
 
     fn ensure_initialized(env: &Env) -> Result<(), Error> {
-        if !env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if !env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::NotInitialized);
         }
         Ok(())
@@ -239,8 +251,10 @@ impl SparseMerkleRegistry {
         }
 
         env.storage().persistent().set(&DataKey::Root, &new_root);
-        env.events()
-            .publish((symbol_short!("root"), symbol_short!("upd")), (old_root, new_root));
+        env.events().publish(
+            (symbol_short!("root"), symbol_short!("upd")),
+            (old_root, new_root),
+        );
         Ok(())
     }
 

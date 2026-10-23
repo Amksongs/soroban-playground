@@ -94,10 +94,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.5",
+    "@babel/core": "^7.29.7",
     "@babel/plugin-syntax-import-meta": "^7.10.4",
     "@babel/plugin-transform-modules-commonjs": "^7.29.7",
-    "@babel/preset-env": "^8.0.5",
+    "@babel/preset-env": "^7.29.7",
     "@faker-js/faker": "^10.5.0",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",

@@ -4,10 +4,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _,
-    vec, Address, Env, Symbol,
-};
+use soroban_sdk::{testutils::Address as _, vec, Address, Env, Symbol};
 
 // ── Minimal counter contract for testing sub-calls ───────────────────────────
 

@@ -39,7 +39,7 @@ pub enum Error {
     AlreadyInitialized = 1,
     NotInitialized = 2,
     Unauthorized = 3,
-    InvalidWeights = 4,    // weights do not sum to BPS
+    InvalidWeights = 4, // weights do not sum to BPS
     AssetNotFound = 5,
     AssetAlreadyExists = 6,
     InsufficientShares = 7,
@@ -109,11 +109,7 @@ impl PortfolioIndex {
     ///
     /// `drift_tolerance_bps` – maximum allowed weight deviation before
     /// rebalancing is required (e.g. 300 = 3 %).
-    pub fn initialize(
-        env: Env,
-        admin: Address,
-        drift_tolerance_bps: u64,
-    ) -> Result<(), Error> {
+    pub fn initialize(env: Env, admin: Address, drift_tolerance_bps: u64) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::State) {
             return Err(Error::AlreadyInitialized);
         }
@@ -264,11 +260,7 @@ impl PortfolioIndex {
     /// The caller must transfer `amounts[i]` of each asset proportional to the
     /// current reserves (or target weights for the first mint).
     /// Returns the number of sINDEX shares minted.
-    pub fn mint(
-        env: Env,
-        depositor: Address,
-        amounts: Vec<i128>,
-    ) -> Result<i128, Error> {
+    pub fn mint(env: Env, depositor: Address, amounts: Vec<i128>) -> Result<i128, Error> {
         let mut state = Self::load_state(&env)?;
         Self::assert_not_paused(&state)?;
         depositor.require_auth();
@@ -346,18 +338,12 @@ impl PortfolioIndex {
                 .get(&DataKey::Asset(token.clone()))
                 .ok_or(Error::AssetNotFound)?;
             cfg.reserve = cfg.reserve.saturating_add(amt);
-            env.storage()
-                .instance()
-                .set(&DataKey::Asset(token), &cfg);
+            env.storage().instance().set(&DataKey::Asset(token), &cfg);
         }
 
         // Mint sINDEX shares
         let share_key = DataKey::Shares(depositor.clone());
-        let existing: i128 = env
-            .storage()
-            .instance()
-            .get(&share_key)
-            .unwrap_or(0);
+        let existing: i128 = env.storage().instance().get(&share_key).unwrap_or(0);
         env.storage()
             .instance()
             .set(&share_key, &(existing + shares));
@@ -375,11 +361,7 @@ impl PortfolioIndex {
     /// Redeem `shares` sINDEX tokens for the proportional underlying basket.
     ///
     /// Returns a `Vec<i128>` of amounts received (one per asset in order).
-    pub fn redeem(
-        env: Env,
-        redeemer: Address,
-        shares: i128,
-    ) -> Result<Vec<i128>, Error> {
+    pub fn redeem(env: Env, redeemer: Address, shares: i128) -> Result<Vec<i128>, Error> {
         let mut state = Self::load_state(&env)?;
         Self::assert_not_paused(&state)?;
         redeemer.require_auth();
@@ -392,11 +374,7 @@ impl PortfolioIndex {
         }
 
         let share_key = DataKey::Shares(redeemer.clone());
-        let owned: i128 = env
-            .storage()
-            .instance()
-            .get(&share_key)
-            .unwrap_or(0);
+        let owned: i128 = env.storage().instance().get(&share_key).unwrap_or(0);
         if owned < shares {
             return Err(Error::InsufficientShares);
         }
@@ -418,17 +396,13 @@ impl PortfolioIndex {
                 let tok_client = token::Client::new(&env, &token);
                 tok_client.transfer(&env.current_contract_address(), &redeemer, &out);
                 cfg.reserve = cfg.reserve.saturating_sub(out);
-                env.storage()
-                    .instance()
-                    .set(&DataKey::Asset(token), &cfg);
+                env.storage().instance().set(&DataKey::Asset(token), &cfg);
             }
             out_amounts.push_back(out);
         }
 
         // Burn shares
-        env.storage()
-            .instance()
-            .set(&share_key, &(owned - shares));
+        env.storage().instance().set(&share_key, &(owned - shares));
         state.total_shares = state.total_shares.saturating_sub(shares);
         env.storage().instance().set(&DataKey::State, &state);
 
@@ -457,11 +431,7 @@ impl PortfolioIndex {
                 .get(&DataKey::Asset(token.clone()))
                 .ok_or(Error::AssetNotFound)?;
             let price = Self::get_price(&env, &token)?;
-            let asset_usd = cfg
-                .reserve
-                .checked_mul(price)
-                .unwrap_or(i128::MAX)
-                / 10_000_000;
+            let asset_usd = cfg.reserve.checked_mul(price).unwrap_or(i128::MAX) / 10_000_000;
             let current_weight_bps = if total_usd == 0 {
                 0i128
             } else {
@@ -537,14 +507,8 @@ impl PortfolioIndex {
 
         // Calculate buy_amount via oracle prices (zero-slippage internal swap)
         let buy_price = Self::get_price(&env, &buy_token)?;
-        let sell_usd_value = sell_amount
-            .checked_mul(sell_price)
-            .unwrap_or(i128::MAX)
-            / 10_000_000;
-        let buy_amount = sell_usd_value
-            .checked_mul(10_000_000)
-            .unwrap_or(i128::MAX)
-            / buy_price;
+        let sell_usd_value = sell_amount.checked_mul(sell_price).unwrap_or(i128::MAX) / 10_000_000;
+        let buy_amount = sell_usd_value.checked_mul(10_000_000).unwrap_or(i128::MAX) / buy_price;
 
         // Slippage protection
         if buy_amount < min_buy_amount {
@@ -673,11 +637,7 @@ impl PortfolioIndex {
                 .get(&DataKey::Asset(token.clone()))
                 .ok_or(Error::AssetNotFound)?;
             let price = Self::get_price(env, &token)?;
-            total += cfg
-                .reserve
-                .checked_mul(price)
-                .unwrap_or(i128::MAX)
-                / 10_000_000;
+            total += cfg.reserve.checked_mul(price).unwrap_or(i128::MAX) / 10_000_000;
         }
         Ok(total)
     }
@@ -688,11 +648,7 @@ impl PortfolioIndex {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{
-        testutils::Address as _,
-        token::StellarAssetClient,
-        Address, Env, Vec,
-    };
+    use soroban_sdk::{testutils::Address as _, token::StellarAssetClient, Address, Env, Vec};
 
     /// Set up a portfolio with two assets (50/50 split) and fund the depositor.
     fn setup() -> (Env, Address, Address, Address, Address, Address) {

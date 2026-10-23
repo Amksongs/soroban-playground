@@ -32,14 +32,14 @@
  *   corresponding `down` SQL for verified rollback capability.
  */
 
-import fs from "node:fs";
-import path from "node:path";
-import crypto from "node:crypto";
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 /** Migration direction. */
-export type Direction = "up" | "down";
+export type Direction = 'up' | 'down';
 
 /** Three-phase expand-contract column migration plan. */
 export interface ExpandContractPlan {
@@ -67,8 +67,8 @@ export interface SchemaVersion {
   checksum: string;
   applied_at: string;
   execution_time_ms: number;
-  status: "applied" | "rolled_back" | "failed";
-  phase?: "expand" | "contract" | "cleanup" | "standard";
+  status: 'applied' | 'rolled_back' | 'failed';
+  phase?: 'expand' | 'contract' | 'cleanup' | 'standard';
 }
 
 /** Result of a safety analysis pass. */
@@ -81,7 +81,7 @@ export interface SafetyViolation {
   rule: string;
   line: number;
   text: string;
-  severity: "error" | "warning";
+  severity: 'error' | 'warning';
 }
 
 /** Options passed to the migrator. */
@@ -117,62 +117,64 @@ export interface DbAdapter {
 const SAFETY_RULES: Array<{
   name: string;
   pattern: RegExp;
-  severity: "error" | "warning";
+  severity: 'error' | 'warning';
   message: string;
 }> = [
   {
-    name: "NO_TABLE_LOCK",
+    name: 'NO_TABLE_LOCK',
     pattern: /\bLOCK\s+TABLE\b/i,
-    severity: "error",
-    message: "Explicit LOCK TABLE is not permitted in zero-downtime migrations.",
-  },
-  {
-    name: "NO_ALTER_LOCK",
-    pattern: /\bALTER\s+TABLE\b.+\bLOCK\s*=/i,
-    severity: "error",
+    severity: 'error',
     message:
-      "ALTER TABLE with explicit LOCK= option is not permitted (blocks concurrent reads).",
+      'Explicit LOCK TABLE is not permitted in zero-downtime migrations.',
   },
   {
-    name: "NO_SYNCHRONOUS_DROP_COLUMN",
+    name: 'NO_ALTER_LOCK',
+    pattern: /\bALTER\s+TABLE\b.+\bLOCK\s*=/i,
+    severity: 'error',
+    message:
+      'ALTER TABLE with explicit LOCK= option is not permitted (blocks concurrent reads).',
+  },
+  {
+    name: 'NO_SYNCHRONOUS_DROP_COLUMN',
     pattern: /\bALTER\s+TABLE\b.+\bDROP\s+COLUMN\b/i,
-    severity: "error",
+    severity: 'error',
     message:
       'Synchronous DROP COLUMN is not allowed. Use the expand-contract CLEANUP phase instead.',
   },
   {
-    name: "NO_SYNCHRONOUS_RENAME_COLUMN",
+    name: 'NO_SYNCHRONOUS_RENAME_COLUMN',
     pattern: /\bALTER\s+TABLE\b.+\bRENAME\s+COLUMN\b/i,
-    severity: "error",
+    severity: 'error',
     message:
-      "Synchronous RENAME COLUMN breaks live readers. Expand-contract instead.",
+      'Synchronous RENAME COLUMN breaks live readers. Expand-contract instead.',
   },
   {
-    name: "NO_SYNCHRONOUS_RENAME_TABLE",
+    name: 'NO_SYNCHRONOUS_RENAME_TABLE',
     pattern: /\bALTER\s+TABLE\b.+\bRENAME\s+TO\b/i,
-    severity: "error",
-    message: "Synchronous table rename is not permitted without a compatibility view.",
+    severity: 'error',
+    message:
+      'Synchronous table rename is not permitted without a compatibility view.',
   },
   {
-    name: "NO_NOT_NULL_WITHOUT_DEFAULT",
+    name: 'NO_NOT_NULL_WITHOUT_DEFAULT',
     pattern: /\bADD\s+COLUMN\b.+\bNOT\s+NULL\b(?!.+\bDEFAULT\b)/i,
-    severity: "error",
+    severity: 'error',
     message:
-      "ADD COLUMN NOT NULL without DEFAULT will lock the table on Postgres < 11. Use nullable or provide a DEFAULT.",
+      'ADD COLUMN NOT NULL without DEFAULT will lock the table on Postgres < 11. Use nullable or provide a DEFAULT.',
   },
   {
-    name: "WARN_UNIQUE_INDEX_CONCURRENT",
+    name: 'WARN_UNIQUE_INDEX_CONCURRENT',
     pattern: /\bCREATE\s+UNIQUE\s+INDEX\b(?!\s+CONCURRENTLY\b)/i,
-    severity: "warning",
+    severity: 'warning',
     message:
-      "CREATE UNIQUE INDEX without CONCURRENTLY can block writes. Consider CONCURRENTLY.",
+      'CREATE UNIQUE INDEX without CONCURRENTLY can block writes. Consider CONCURRENTLY.',
   },
   {
-    name: "WARN_INDEX_WITHOUT_CONCURRENT",
+    name: 'WARN_INDEX_WITHOUT_CONCURRENT',
     pattern: /\bCREATE\s+INDEX\b(?!\s+CONCURRENTLY\b)/i,
-    severity: "warning",
+    severity: 'warning',
     message:
-      "CREATE INDEX without CONCURRENTLY can block writes. Consider CONCURRENTLY.",
+      'CREATE INDEX without CONCURRENTLY can block writes. Consider CONCURRENTLY.',
   },
 ];
 
@@ -200,11 +202,11 @@ export class Migrator {
     this.db = db;
     this.migrationsDir =
       options.migrationsDir ??
-      process.env["MIGRATIONS_DIR"] ??
-      path.join(process.cwd(), "migrations");
+      process.env['MIGRATIONS_DIR'] ??
+      path.join(process.cwd(), 'migrations');
     this.lockTimeoutMs = options.lockTimeoutMs ?? 2_000;
     this.dryRun = options.dryRun ?? false;
-    this.versionsTable = options.versionsTable ?? "schema_versions";
+    this.versionsTable = options.versionsTable ?? 'schema_versions';
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -231,7 +233,10 @@ export class Migrator {
     `;
 
     if (this.dryRun) {
-      this._log("dry-run", `Would initialize versions table: ${this.versionsTable}`);
+      this._log(
+        'dry-run',
+        `Would initialize versions table: ${this.versionsTable}`
+      );
       return;
     }
 
@@ -289,7 +294,9 @@ export class Migrator {
     }
 
     // Sort ascending by version
-    result.sort((a, b) => a.version.localeCompare(b.version, undefined, { numeric: true }));
+    result.sort((a, b) =>
+      a.version.localeCompare(b.version, undefined, { numeric: true })
+    );
     return result;
   }
 
@@ -306,7 +313,7 @@ export class Migrator {
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i]!;
       // Skip pure comment lines
-      const stripped = raw.replace(/--.*$/, "").trim();
+      const stripped = raw.replace(/--.*$/, '').trim();
       if (!stripped) continue;
 
       for (const rule of SAFETY_RULES) {
@@ -321,7 +328,7 @@ export class Migrator {
       }
     }
 
-    const hasErrors = violations.some((v) => v.severity === "error");
+    const hasErrors = violations.some((v) => v.severity === 'error');
     return { safe: !hasErrors, violations };
   }
 
@@ -341,8 +348,8 @@ export class Migrator {
     const applied = await this.getAppliedVersions();
     const appliedSet = new Set(applied);
 
-    const upFiles = files.filter((f) => f.direction === "up");
-    const downFiles = files.filter((f) => f.direction === "down");
+    const upFiles = files.filter((f) => f.direction === 'up');
+    const downFiles = files.filter((f) => f.direction === 'down');
     const downVersions = new Set(downFiles.map((f) => f.version));
 
     for (const up of upFiles) {
@@ -357,7 +364,9 @@ export class Migrator {
       const pendingVersion = up.version;
       if (!appliedSet.has(pendingVersion)) {
         for (const av of applied) {
-          if (av.localeCompare(pendingVersion, undefined, { numeric: true }) > 0) {
+          if (
+            av.localeCompare(pendingVersion, undefined, { numeric: true }) > 0
+          ) {
             errors.push(
               `Out-of-order migration detected: ${pendingVersion} is pending but ${av} is already applied.`
             );
@@ -367,10 +376,12 @@ export class Migrator {
       }
 
       // Safety analysis
-      const sql = fs.readFileSync(up.fullPath, "utf-8");
+      const sql = fs.readFileSync(up.fullPath, 'utf-8');
       const report = this.analyzeSafety(sql);
       if (!report.safe) {
-        for (const v of report.violations.filter((x) => x.severity === "error")) {
+        for (const v of report.violations.filter(
+          (x) => x.severity === 'error'
+        )) {
           errors.push(
             `Safety violation in ${up.filename}:${v.line} [${v.rule}] — ${v.text}`
           );
@@ -391,7 +402,7 @@ export class Migrator {
    * @returns `{ applied: number, skipped: number }` counts.
    */
   async applyPending(): Promise<{ applied: number; skipped: number }> {
-    const files = this.getMigrationFiles().filter((f) => f.direction === "up");
+    const files = this.getMigrationFiles().filter((f) => f.direction === 'up');
     const applied = new Set(await this.getAppliedVersions());
 
     let appliedCount = 0;
@@ -403,13 +414,17 @@ export class Migrator {
         continue;
       }
 
-      const sql = fs.readFileSync(file.fullPath, "utf-8");
+      const sql = fs.readFileSync(file.fullPath, 'utf-8');
 
       // Safety gate
       const report = this.analyzeSafety(sql);
-      const errorViolations = report.violations.filter((v) => v.severity === "error");
+      const errorViolations = report.violations.filter(
+        (v) => v.severity === 'error'
+      );
       if (errorViolations.length > 0) {
-        const msg = errorViolations.map((v) => `  [${v.rule}] line ${v.line}: ${v.text}`).join("\n");
+        const msg = errorViolations
+          .map((v) => `  [${v.rule}] line ${v.line}: ${v.text}`)
+          .join('\n');
         throw new MigrationSafetyError(
           `Migration ${file.version} failed safety checks:\n${msg}`
         );
@@ -419,7 +434,10 @@ export class Migrator {
       const checksum = computeChecksum(sql);
 
       if (this.dryRun) {
-        this._log("dry-run", `Would apply migration ${file.version} (${file.filename})`);
+        this._log(
+          'dry-run',
+          `Would apply migration ${file.version} (${file.filename})`
+        );
         appliedCount++;
         continue;
       }
@@ -450,7 +468,10 @@ export class Migrator {
         await this.db.commit();
         appliedCount++;
 
-        this._log("applied", `${file.version} (${file.filename}) in ${execMs} ms`);
+        this._log(
+          'applied',
+          `${file.version} (${file.filename}) in ${execMs} ms`
+        );
       } catch (err) {
         await this.db.rollback();
 
@@ -463,7 +484,9 @@ export class Migrator {
              ON CONFLICT (version) DO UPDATE SET status = 'failed'`,
             [file.version, checksum, Date.now() - start]
           )
-          .catch(() => {/* ignore record-failure errors */});
+          .catch(() => {
+            /* ignore record-failure errors */
+          });
 
         throw new MigrationApplyError(
           `Failed to apply migration ${file.version}: ${(err as Error).message}`,
@@ -487,12 +510,13 @@ export class Migrator {
     }
 
     const files = this.getMigrationFiles();
-    const downFiles = files.filter((f) => f.direction === "down");
+    const downFiles = files.filter((f) => f.direction === 'down');
 
     // Find the last applied version to roll back
     const lastApplied = targetVersion
       ? appliedVersions.filter(
-          (v) => v.localeCompare(targetVersion, undefined, { numeric: true }) > 0
+          (v) =>
+            v.localeCompare(targetVersion, undefined, { numeric: true }) > 0
         )
       : [appliedVersions[appliedVersions.length - 1]!];
 
@@ -507,10 +531,10 @@ export class Migrator {
       );
     }
 
-    const sql = fs.readFileSync(downFile.fullPath, "utf-8");
+    const sql = fs.readFileSync(downFile.fullPath, 'utf-8');
 
     if (this.dryRun) {
-      this._log("dry-run", `Would roll back migration ${versionToRollback}`);
+      this._log('dry-run', `Would roll back migration ${versionToRollback}`);
       return versionToRollback;
     }
 
@@ -521,7 +545,9 @@ export class Migrator {
 
       await this.db
         .query(`SET LOCAL lock_timeout = '${this.lockTimeoutMs}ms'`)
-        .catch(() => {/* ignore */});
+        .catch(() => {
+          /* ignore */
+        });
 
       await this.db.query(sql);
 
@@ -534,7 +560,10 @@ export class Migrator {
 
       await this.db.commit();
 
-      this._log("rolled_back", `${versionToRollback} in ${Date.now() - start} ms`);
+      this._log(
+        'rolled_back',
+        `${versionToRollback} in ${Date.now() - start} ms`
+      );
       return versionToRollback;
     } catch (err) {
       await this.db.rollback();
@@ -609,7 +638,7 @@ ALTER TABLE ${table} DROP COLUMN IF EXISTS ${oldColumn};
  * Compute a SHA-256 checksum of migration SQL for idempotency tracking.
  */
 export function computeChecksum(sql: string): string {
-  return crypto.createHash("sha256").update(sql, "utf8").digest("hex");
+  return crypto.createHash('sha256').update(sql, 'utf8').digest('hex');
 }
 
 /**
@@ -629,7 +658,7 @@ export function analyzeMigrationSafety(sql: string): SafetyReport {
 export class MigrationSafetyError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "MigrationSafetyError";
+    this.name = 'MigrationSafetyError';
   }
 }
 
@@ -638,7 +667,7 @@ export class MigrationApplyError extends Error {
 
   constructor(message: string, version: string) {
     super(message);
-    this.name = "MigrationApplyError";
+    this.name = 'MigrationApplyError';
     this.version = version;
   }
 }

@@ -26,8 +26,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    bytes, contract, contractimpl, contracttype, symbol_short, Address, Bytes, Env,
-    Symbol,
+    bytes, contract, contractimpl, contracttype, symbol_short, Address, Bytes, Env, Symbol,
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -120,7 +119,9 @@ impl CarbonCredits {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::TotalSupply, &0_i128);
-        env.storage().instance().set(&DataKey::TotalRetired, &0_i128);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalRetired, &0_i128);
         env.storage().instance().set(&DataKey::BatchCount, &0_u64);
         env.storage().instance().set(&DataKey::CertCount, &0_u64);
     }
@@ -150,7 +151,11 @@ impl CarbonCredits {
             panic!("amount must be positive");
         }
 
-        let batch_id: u64 = env.storage().instance().get(&DataKey::BatchCount).unwrap_or(0);
+        let batch_id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::BatchCount)
+            .unwrap_or(0);
         let batch = BatchData {
             minter: admin.clone(),
             registry_standard: registry_standard.clone(),
@@ -159,8 +164,12 @@ impl CarbonCredits {
             active_amount: amount,
             minted_at: env.ledger().sequence(),
         };
-        env.storage().persistent().set(&DataKey::Batch(batch_id), &batch);
-        env.storage().instance().set(&DataKey::BatchCount, &(batch_id + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Batch(batch_id), &batch);
+        env.storage()
+            .instance()
+            .set(&DataKey::BatchCount, &(batch_id + 1));
 
         // Credit recipient
         let bal: i128 = env
@@ -172,12 +181,24 @@ impl CarbonCredits {
             .persistent()
             .set(&DataKey::Balance(recipient.clone()), &(bal + amount));
 
-        let supply: i128 = env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TotalSupply, &(supply + amount));
+        let supply: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(supply + amount));
 
         env.events().publish(
             (EVT_MINT,),
-            (batch_id, recipient, registry_standard, serial_number, amount),
+            (
+                batch_id,
+                recipient,
+                registry_standard,
+                serial_number,
+                amount,
+            ),
         );
         batch_id
     }
@@ -259,7 +280,9 @@ impl CarbonCredits {
             panic!("batch does not have enough active credits");
         }
         batch.active_amount -= amount;
-        env.storage().persistent().set(&DataKey::Batch(batch_id), &batch);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Batch(batch_id), &batch);
 
         // Burn from retiree balance
         env.storage()
@@ -267,14 +290,23 @@ impl CarbonCredits {
             .set(&DataKey::Balance(retiree.clone()), &(retiree_bal - amount));
 
         // Update retired total
-        let retired: i128 = env.storage().instance().get(&DataKey::TotalRetired).unwrap_or(0);
+        let retired: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalRetired)
+            .unwrap_or(0);
         env.storage()
             .instance()
             .set(&DataKey::TotalRetired, &(retired + amount));
 
         // Issue certificate
-        let cert_id: u64 = env.storage().instance().get(&DataKey::CertCount).unwrap_or(0);
-        let cert_hash = Self::compute_cert_hash(&env, cert_id, &retiree, &beneficiary, amount, batch_id);
+        let cert_id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::CertCount)
+            .unwrap_or(0);
+        let cert_hash =
+            Self::compute_cert_hash(&env, cert_id, &retiree, &beneficiary, amount, batch_id);
         let cert = RetirementCert {
             cert_id,
             cert_hash: cert_hash.clone(),
@@ -285,9 +317,15 @@ impl CarbonCredits {
             batch_id,
             retired_at: env.ledger().sequence(),
         };
-        env.storage().persistent().set(&DataKey::Cert(cert_id), &cert);
-        env.storage().persistent().set(&DataKey::CertByHash(cert_hash.clone()), &cert_id);
-        env.storage().instance().set(&DataKey::CertCount, &(cert_id + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Cert(cert_id), &cert);
+        env.storage()
+            .persistent()
+            .set(&DataKey::CertByHash(cert_hash.clone()), &cert_id);
+        env.storage()
+            .instance()
+            .set(&DataKey::CertCount, &(cert_id + 1));
 
         env.events().publish(
             (EVT_RETIRE,),
@@ -310,12 +348,18 @@ impl CarbonCredits {
 
     /// Returns total tokens ever minted.
     pub fn total_supply(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0)
     }
 
     /// Returns total tokens permanently retired.
     pub fn total_retired(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalRetired).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalRetired)
+            .unwrap_or(0)
     }
 
     /// Fetch a batch by ID.
@@ -365,10 +409,12 @@ impl CarbonCredits {
         // Build a fixed-size byte representation of the key fields.
         // Layout: cert_id (8 bytes) | amount (16 bytes) | batch_id (8 bytes)
         // Address bytes are hashed symbolically via their debug representation.
-        let mut raw = bytes!(env, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // cert_id placeholder
-                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // amount lo
-                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // amount hi
-                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00); // batch_id
+        let mut raw = bytes!(
+            env, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // cert_id placeholder
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // amount lo
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // amount hi
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ); // batch_id
 
         // Encode cert_id
         let id_bytes = cert_id.to_be_bytes();
@@ -437,8 +483,18 @@ mod tests {
         let (env, _admin, client) = setup();
         let r1 = Address::generate(&env);
         let r2 = Address::generate(&env);
-        client.mint(&symbol_short!("Verra"), &symbol_short!("VCS001"), &r1, &5_000);
-        client.mint(&symbol_short!("GoldStd"), &symbol_short!("GS002"), &r2, &3_000);
+        client.mint(
+            &symbol_short!("Verra"),
+            &symbol_short!("VCS001"),
+            &r1,
+            &5_000,
+        );
+        client.mint(
+            &symbol_short!("GoldStd"),
+            &symbol_short!("GS002"),
+            &r2,
+            &3_000,
+        );
         assert_eq!(client.total_supply(), 8_000);
     }
 
@@ -449,7 +505,12 @@ mod tests {
         let (env, _admin, client) = setup();
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        client.mint(&symbol_short!("Verra"), &symbol_short!("VCS001"), &alice, &10_000);
+        client.mint(
+            &symbol_short!("Verra"),
+            &symbol_short!("VCS001"),
+            &alice,
+            &10_000,
+        );
         client.transfer(&alice, &bob, &4_000);
         assert_eq!(client.balance_of(&alice), 6_000);
         assert_eq!(client.balance_of(&bob), 4_000);
@@ -461,7 +522,12 @@ mod tests {
         let (env, _admin, client) = setup();
         let alice = Address::generate(&env);
         let bob = Address::generate(&env);
-        client.mint(&symbol_short!("Verra"), &symbol_short!("VCS001"), &alice, &100);
+        client.mint(
+            &symbol_short!("Verra"),
+            &symbol_short!("VCS001"),
+            &alice,
+            &100,
+        );
         client.transfer(&alice, &bob, &101);
     }
 
@@ -478,7 +544,13 @@ mod tests {
             &holder,
             &10_000,
         );
-        client.retire(&holder, &batch_id, &3_000, &beneficiary, &symbol_short!("Flights"));
+        client.retire(
+            &holder,
+            &batch_id,
+            &3_000,
+            &beneficiary,
+            &symbol_short!("Flights"),
+        );
         assert_eq!(client.balance_of(&holder), 7_000);
         assert_eq!(client.total_retired(), 3_000);
     }
@@ -495,7 +567,13 @@ mod tests {
             &holder,
             &100,
         );
-        client.retire(&holder, &batch_id, &101, &beneficiary, &symbol_short!("Test"));
+        client.retire(
+            &holder,
+            &batch_id,
+            &101,
+            &beneficiary,
+            &symbol_short!("Test"),
+        );
     }
 
     #[test]
@@ -509,8 +587,13 @@ mod tests {
             &holder,
             &10_000,
         );
-        let cert_id =
-            client.retire(&holder, &batch_id, &5_000, &beneficiary, &symbol_short!("CO2Offset"));
+        let cert_id = client.retire(
+            &holder,
+            &batch_id,
+            &5_000,
+            &beneficiary,
+            &symbol_short!("CO2Offset"),
+        );
         let cert = client.get_cert(&cert_id);
         assert_eq!(cert.amount, 5_000);
         assert_eq!(cert.batch_id, batch_id);
@@ -528,8 +611,13 @@ mod tests {
             &holder,
             &5_000,
         );
-        let cert_id =
-            client.retire(&holder, &batch_id, &2_000, &beneficiary, &symbol_short!("TreePlant"));
+        let cert_id = client.retire(
+            &holder,
+            &batch_id,
+            &2_000,
+            &beneficiary,
+            &symbol_short!("TreePlant"),
+        );
         let cert_direct = client.get_cert(&cert_id);
         let cert_by_hash = client.get_cert_by_hash(&cert_direct.cert_hash);
         assert_eq!(cert_direct.cert_id, cert_by_hash.cert_id);
@@ -546,8 +634,20 @@ mod tests {
             &holder,
             &10_000,
         );
-        client.retire(&holder, &batch_id, &4_000, &beneficiary, &symbol_short!("Offset1"));
-        client.retire(&holder, &batch_id, &3_000, &beneficiary, &symbol_short!("Offset2"));
+        client.retire(
+            &holder,
+            &batch_id,
+            &4_000,
+            &beneficiary,
+            &symbol_short!("Offset1"),
+        );
+        client.retire(
+            &holder,
+            &batch_id,
+            &3_000,
+            &beneficiary,
+            &symbol_short!("Offset2"),
+        );
         let batch = client.get_batch(&batch_id);
         assert_eq!(batch.active_amount, 3_000);
         assert_eq!(client.total_retired(), 7_000);
@@ -567,8 +667,20 @@ mod tests {
             &10_000,
         );
         client.transfer(&alice, &bob, &2_000);
-        client.retire(&alice, &batch_id, &3_000, &beneficiary, &symbol_short!("Offset"));
-        client.retire(&bob, &batch_id, &1_000, &beneficiary, &symbol_short!("Offset2"));
+        client.retire(
+            &alice,
+            &batch_id,
+            &3_000,
+            &beneficiary,
+            &symbol_short!("Offset"),
+        );
+        client.retire(
+            &bob,
+            &batch_id,
+            &1_000,
+            &beneficiary,
+            &symbol_short!("Offset2"),
+        );
 
         let total_supply = client.total_supply();
         let total_retired = client.total_retired();

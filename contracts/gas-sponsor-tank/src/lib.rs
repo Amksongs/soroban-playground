@@ -8,8 +8,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short,
-    Address, Env, Map, Symbol,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol,
 };
 
 const SPONSOR_KEY: Symbol = symbol_short!("SPONSOR");
@@ -63,7 +62,12 @@ impl GasSponsorTank {
     // ── Initialisation ──────────────────────────────────────────────────────
 
     pub fn initialize(env: Env, sponsor: Address, max_gas_per_tx: i128) -> Result<(), Error> {
-        if env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::AlreadyInitialized);
         }
         sponsor.require_auth();
@@ -74,12 +78,18 @@ impl GasSponsorTank {
         env.storage().instance().set(&MAX_GAS_KEY, &max_gas_per_tx);
         env.storage().instance().set(&TOTAL_RESERVES_KEY, &0i128);
         env.storage().instance().set(&INITIALIZED_KEY, &true);
-        env.events().publish((symbol_short!("init"),), (sponsor, max_gas_per_tx));
+        env.events()
+            .publish((symbol_short!("init"),), (sponsor, max_gas_per_tx));
         Ok(())
     }
 
     fn ensure_initialized(env: &Env) -> Result<(), Error> {
-        if !env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if !env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::NotInitialized);
         }
         Ok(())
@@ -115,7 +125,8 @@ impl GasSponsorTank {
             .instance()
             .set(&TOTAL_RESERVES_KEY, &(total + amount));
 
-        env.events().publish((symbol_short!("deposit"),), (dapp, amount));
+        env.events()
+            .publish((symbol_short!("deposit"),), (dapp, amount));
         Ok(())
     }
 
@@ -155,11 +166,14 @@ impl GasSponsorTank {
         if caller != Self::sponsor(&env) {
             return Err(Error::Unauthorized);
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::WhitelistMethod((target.clone(), method.clone())), &true);
-        env.events()
-            .publish((symbol_short!("wlst"), symbol_short!("mth")), (target, method));
+        env.storage().persistent().set(
+            &DataKey::WhitelistMethod((target.clone(), method.clone())),
+            &true,
+        );
+        env.events().publish(
+            (symbol_short!("wlst"), symbol_short!("mth")),
+            (target, method),
+        );
         Ok(())
     }
 
@@ -169,7 +183,9 @@ impl GasSponsorTank {
         if caller != Self::sponsor(&env) {
             return Err(Error::Unauthorized);
         }
-        env.storage().persistent().set(&DataKey::Quota(user.clone()), &quota);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Quota(user.clone()), &quota);
         env.events()
             .publish((symbol_short!("qta"), symbol_short!("set")), (user, quota));
         Ok(())
@@ -242,7 +258,9 @@ impl GasSponsorTank {
         }
 
         // Apply: deduct from reserve, record usage.
-        env.storage().persistent().set(&rkey, &(reserve - gas_limit));
+        env.storage()
+            .persistent()
+            .set(&rkey, &(reserve - gas_limit));
         env.storage().persistent().set(&ukey, &(used + gas_limit));
 
         let total: i128 = env
@@ -337,7 +355,10 @@ mod tests {
         let res = client.sponsor_call(&dapp, &user, &target, &method, &10000);
         assert!(res.is_ok());
         assert_eq!(client.get_reserve(&dapp), 500000 - 10000);
-        assert_eq!(client.get_usage(&user, &(env.ledger().timestamp() / 86400)), 10000);
+        assert_eq!(
+            client.get_usage(&user, &(env.ledger().timestamp() / 86400)),
+            10000
+        );
     }
 
     #[test]
@@ -379,7 +400,9 @@ mod tests {
         client.whitelist_method(&sponsor, &target, &method).unwrap();
         client.set_quota(&sponsor, &user, &5000).unwrap();
 
-        client.sponsor_call(&dapp, &user, &target, &method, &3000).unwrap();
+        client
+            .sponsor_call(&dapp, &user, &target, &method, &3000)
+            .unwrap();
         let res = client.sponsor_call(&dapp, &user, &target, &method, &3000);
         assert!(res.is_err()); // 3000+3000 > 5000 quota
     }

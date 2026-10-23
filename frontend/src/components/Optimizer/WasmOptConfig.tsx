@@ -63,13 +63,7 @@ export interface WasmOptConfigProps {
   filename?: string;
 }
 
-type OptPhase =
-  | "idle"
-  | "analysing"
-  | "ready"
-  | "running"
-  | "done"
-  | "error";
+type OptPhase = "idle" | "analysing" | "ready" | "running" | "done" | "error";
 
 interface SectionEntry {
   id: number;
@@ -271,11 +265,13 @@ function PassToggle({
         />
         <div
           className={`w-9 h-5 rounded-full transition-all duration-200 border
-            ${checked
-              ? simulated
-                ? "bg-amber-500/50 border-amber-500/50"
-                : "bg-cyan-500/70 border-cyan-500/60"
-              : "bg-slate-800 border-white/10"}
+            ${
+              checked
+                ? simulated
+                  ? "bg-amber-500/50 border-amber-500/50"
+                  : "bg-cyan-500/70 border-cyan-500/60"
+                : "bg-slate-800 border-white/10"
+            }
           `}
         />
         <div
@@ -614,20 +610,21 @@ export default function WasmOptConfig({
     setOptResult(null);
 
     const id = ++reqIdRef.current;
+    const workerBytes = inputBytes.slice();
     const request: WasmOptRequest = {
       type: "optimize",
       id,
-      bytes: inputBytes,
+      bytes: workerBytes,
       passes,
     };
-    workerRef.current.postMessage(request, [inputBytes.buffer as ArrayBuffer]);
-    // Re-assign so we still hold a reference (buffer was transferred)
-    setInputBytes(new Uint8Array(0));
+    workerRef.current.postMessage(request, [workerBytes.buffer]);
   }, [inputBytes, passes]);
 
   const handleDownload = useCallback(() => {
     if (!optResult) return;
-    const blob = new Blob([optResult.output], { type: "application/wasm" });
+    const blob = new Blob([new Uint8Array(optResult.output).buffer], {
+      type: "application/wasm",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const baseName = inputFilename.replace(/\.wasm$/, "");
@@ -664,17 +661,16 @@ export default function WasmOptConfig({
     () =>
       optResult
         ? analyseBinary(optResult.output).sections
-        : analysis?.sections ?? [],
+        : (analysis?.sections ?? []),
     [analysis, optResult],
   );
 
   const treemapTotal = optResult
     ? optResult.optimizedBytes
-    : analysis?.sizeBytes ?? 0;
+    : (analysis?.sizeBytes ?? 0);
 
   const appliedPassCount = useMemo(
-    () =>
-      optResult?.passResults.filter((p) => p.applied).length ?? 0,
+    () => optResult?.passResults.filter((p) => p.applied).length ?? 0,
     [optResult],
   );
 
@@ -703,9 +699,7 @@ export default function WasmOptConfig({
       </div>
 
       {/* Drop zone — shown when no binary loaded */}
-      {phase === "idle" && (
-        <DropZone onBytes={handleFile} />
-      )}
+      {phase === "idle" && <DropZone onBytes={handleFile} />}
 
       {/* Analysing spinner */}
       {phase === "analysing" && (
@@ -733,267 +727,278 @@ export default function WasmOptConfig({
       )}
 
       {/* Main panel — shown when binary is loaded */}
-      {(phase === "ready" || phase === "running" || phase === "done") && analysis && (
-        <div className="space-y-4">
-          {/* File info row */}
-          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/60 border border-white/5 text-xs">
-            <div className="flex items-center gap-2 truncate">
-              <FileCode2 size={14} className="text-cyan-400 shrink-0" />
-              <span className="font-mono text-slate-300 truncate">
-                {inputFilename}
+      {(phase === "ready" || phase === "running" || phase === "done") &&
+        analysis && (
+          <div className="space-y-4">
+            {/* File info row */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/60 border border-white/5 text-xs">
+              <div className="flex items-center gap-2 truncate">
+                <FileCode2 size={14} className="text-cyan-400 shrink-0" />
+                <span className="font-mono text-slate-300 truncate">
+                  {inputFilename}
+                </span>
+                {analysis.isSoroban && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">
+                    Soroban
+                  </span>
+                )}
+              </div>
+              <span className="font-mono text-slate-400 shrink-0 ml-2">
+                {formatBytes(
+                  optResult ? optResult.originalBytes : analysis.sizeBytes,
+                )}
               </span>
-              {analysis.isSoroban && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">
-                  Soroban
+            </div>
+
+            {/* Soroban spec metadata */}
+            {analysis.isSoroban && (
+              <div className="flex flex-wrap gap-1.5 items-center text-[11px]">
+                <span className="text-slate-400 font-semibold">
+                  Spec sections:
                 </span>
-              )}
-            </div>
-            <span className="font-mono text-slate-400 shrink-0 ml-2">
-              {formatBytes(optResult ? optResult.originalBytes : analysis.sizeBytes)}
-            </span>
-          </div>
-
-          {/* Soroban spec metadata */}
-          {analysis.isSoroban && (
-            <div className="flex flex-wrap gap-1.5 items-center text-[11px]">
-              <span className="text-slate-400 font-semibold">Spec sections:</span>
-              {analysis.sorobanSections.map((s) => (
-                <span
-                  key={s}
-                  className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25 font-mono"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Section treemap */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-              <SquareCode size={12} className="text-cyan-400" />
-              Binary Composition
-              {optResult && (
-                <span className="text-slate-500">
-                  (after optimisation)
-                </span>
-              )}
-            </div>
-            <SectionTreemap
-              sections={treemapSections}
-              totalBytes={treemapTotal}
-            />
-          </div>
-
-          {/* Pass configuration */}
-          {phase !== "done" && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                <Settings2 size={12} className="text-cyan-400" />
-                Optimisation Passes
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <PassToggle
-                  id="pass-strip-debug"
-                  label="Strip Debug Names"
-                  description="Remove the 'name' custom section — debug symbol annotations with zero runtime effect."
-                  checked={passes.stripDebugNames}
-                  onChange={togglePass("stripDebugNames")}
-                />
-                <PassToggle
-                  id="pass-strip-producers"
-                  label="Strip Producers"
-                  description="Remove the 'producers' custom section — build-tool version metadata (Rust/LLVM)."
-                  checked={passes.stripProducers}
-                  onChange={togglePass("stripProducers")}
-                />
-                <PassToggle
-                  id="pass-strip-unknown"
-                  label="Strip Unknown Custom Sections"
-                  description="Remove non-Soroban custom sections (DWARF debug data, relocation tables)."
-                  checked={passes.stripUnknownCustom}
-                  onChange={togglePass("stripUnknownCustom")}
-                />
-                <PassToggle
-                  id="pass-merge-data"
-                  label="Merge Data Segments"
-                  description="Coalesce adjacent static data segments to reduce Data section overhead."
-                  checked={passes.mergeDataSegments}
-                  onChange={togglePass("mergeDataSegments")}
-                />
-                <PassToggle
-                  id="pass-inlining"
-                  label="Inlining"
-                  description="Inline hot small functions to eliminate call overhead."
-                  checked={passes.inlining}
-                  simulated
-                  onChange={togglePass("inlining")}
-                />
-                <PassToggle
-                  id="pass-dce"
-                  label="Dead-Code Elimination"
-                  description="Remove unreachable functions and data segments."
-                  checked={passes.deadCodeElimination}
-                  simulated
-                  onChange={togglePass("deadCodeElimination")}
-                />
-                <PassToggle
-                  id="pass-const-merge"
-                  label="Const Merging"
-                  description="De-duplicate identical constant values across the binary."
-                  checked={passes.constMerging}
-                  simulated
-                  onChange={togglePass("constMerging")}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Optimise button */}
-          {phase === "ready" && (
-            <button
-              onClick={handleOptimise}
-              disabled={!inputBytes || inputBytes.length === 0}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Sparkles size={16} />
-              Run Optimisation
-            </button>
-          )}
-
-          {/* Running state */}
-          {phase === "running" && (
-            <div className="flex items-center justify-center gap-2 py-4 text-cyan-400 text-sm">
-              <Loader2 size={18} className="animate-spin" />
-              <span>Running optimisation passes…</span>
-            </div>
-          )}
-
-          {/* Results */}
-          {phase === "done" && optResult && (
-            <div className="space-y-4">
-              {/* Delta cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <DeltaCard
-                  label="Original"
-                  value={formatBytes(optResult.originalBytes)}
-                  accent="cyan"
-                />
-                <DeltaCard
-                  label="Optimised"
-                  value={formatBytes(optResult.optimizedBytes)}
-                  accent="emerald"
-                />
-                <DeltaCard
-                  label="Saved"
-                  value={formatBytes(optResult.reductionBytes)}
-                  sub={`${optResult.reductionPct}% reduction`}
-                  accent={optResult.reductionPct >= 15 ? "emerald" : "amber"}
-                />
-                <DeltaCard
-                  label="Passes Applied"
-                  value={`${appliedPassCount} / ${optResult.passResults.length}`}
-                  accent="cyan"
-                />
-              </div>
-
-              {/* Pass results breakdown */}
-              <div className="space-y-1.5">
-                <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                  Pass Results
-                </div>
-                {optResult.passResults.map((pr) => (
-                  <div
-                    key={pr.pass}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5 text-xs"
+                {analysis.sorobanSections.map((s) => (
+                  <span
+                    key={s}
+                    className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25 font-mono"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      {pr.applied ? (
-                        <CheckCircle2
-                          size={13}
-                          className="text-emerald-400 shrink-0"
-                        />
-                      ) : (
-                        <ChevronRight
-                          size={13}
-                          className="text-slate-500 shrink-0"
-                        />
-                      )}
-                      <span
-                        className={
-                          pr.applied ? "text-slate-200" : "text-slate-400"
-                        }
-                      >
-                        {pr.pass}
-                      </span>
-                      {pr.note && (
-                        <span className="text-slate-500 truncate hidden sm:block">
-                          — {pr.note}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-mono text-emerald-400 shrink-0 ml-2">
-                      {pr.bytesSaved > 0
-                        ? `-${formatBytes(pr.bytesSaved)}`
-                        : "—"}
-                    </span>
-                  </div>
+                    {s}
+                  </span>
                 ))}
               </div>
+            )}
 
-              {/* Soroban spec integrity badge */}
-              <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium
-                  ${optResult.sorobanSections.length > 0
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                    : "bg-slate-950/40 border-white/5 text-slate-400"}
-                `}
-                data-testid="spec-integrity-badge"
-              >
-                {optResult.sorobanSections.length > 0 ? (
-                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertTriangle size={13} className="text-amber-400 shrink-0" />
+            {/* Section treemap */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                <SquareCode size={12} className="text-cyan-400" />
+                Binary Composition
+                {optResult && (
+                  <span className="text-slate-500">(after optimisation)</span>
                 )}
-                <span>
-                  {optResult.sorobanSections.length > 0
-                    ? `Soroban contract spec preserved — ${optResult.sorobanSections.length} required section${optResult.sorobanSections.length > 1 ? "s" : ""} intact`
-                    : "No Soroban spec sections detected (non-Soroban binary)"}
-                </span>
               </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 py-2 px-4 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-semibold text-xs transition-all"
-                >
-                  <ArrowDownToLine size={14} />
-                  Download Optimised Binary
-                </button>
-                {onOptimized && (
-                  <button
-                    onClick={handleForwardToDeploy}
-                    className="flex items-center gap-2 py-2 px-4 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-semibold text-xs transition-all"
-                    data-testid="forward-to-deploy"
-                  >
-                    <Rocket size={14} />
-                    Forward to Deploy
-                  </button>
-                )}
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-2 py-2 px-4 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 font-semibold text-xs transition-all"
-                >
-                  <SquareCode size={14} />
-                  Optimise Another
-                </button>
-              </div>
+              <SectionTreemap
+                sections={treemapSections}
+                totalBytes={treemapTotal}
+              />
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Pass configuration */}
+            {phase !== "done" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                  <Settings2 size={12} className="text-cyan-400" />
+                  Optimisation Passes
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <PassToggle
+                    id="pass-strip-debug"
+                    label="Strip Debug Names"
+                    description="Remove the 'name' custom section — debug symbol annotations with zero runtime effect."
+                    checked={passes.stripDebugNames}
+                    onChange={togglePass("stripDebugNames")}
+                  />
+                  <PassToggle
+                    id="pass-strip-producers"
+                    label="Strip Producers"
+                    description="Remove the 'producers' custom section — build-tool version metadata (Rust/LLVM)."
+                    checked={passes.stripProducers}
+                    onChange={togglePass("stripProducers")}
+                  />
+                  <PassToggle
+                    id="pass-strip-unknown"
+                    label="Strip Unknown Custom Sections"
+                    description="Remove non-Soroban custom sections (DWARF debug data, relocation tables)."
+                    checked={passes.stripUnknownCustom}
+                    onChange={togglePass("stripUnknownCustom")}
+                  />
+                  <PassToggle
+                    id="pass-merge-data"
+                    label="Merge Data Segments"
+                    description="Coalesce adjacent static data segments to reduce Data section overhead."
+                    checked={passes.mergeDataSegments}
+                    onChange={togglePass("mergeDataSegments")}
+                  />
+                  <PassToggle
+                    id="pass-inlining"
+                    label="Inlining"
+                    description="Inline hot small functions to eliminate call overhead."
+                    checked={passes.inlining}
+                    simulated
+                    onChange={togglePass("inlining")}
+                  />
+                  <PassToggle
+                    id="pass-dce"
+                    label="Dead-Code Elimination"
+                    description="Remove unreachable functions and data segments."
+                    checked={passes.deadCodeElimination}
+                    simulated
+                    onChange={togglePass("deadCodeElimination")}
+                  />
+                  <PassToggle
+                    id="pass-const-merge"
+                    label="Const Merging"
+                    description="De-duplicate identical constant values across the binary."
+                    checked={passes.constMerging}
+                    simulated
+                    onChange={togglePass("constMerging")}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Optimise button */}
+            {phase === "ready" && (
+              <button
+                onClick={handleOptimise}
+                disabled={!inputBytes || inputBytes.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={16} />
+                Run Optimisation
+              </button>
+            )}
+
+            {/* Running state */}
+            {phase === "running" && (
+              <div className="flex items-center justify-center gap-2 py-4 text-cyan-400 text-sm">
+                <Loader2 size={18} className="animate-spin" />
+                <span>Running optimisation passes…</span>
+              </div>
+            )}
+
+            {/* Results */}
+            {phase === "done" && optResult && (
+              <div className="space-y-4">
+                {/* Delta cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <DeltaCard
+                    label="Original"
+                    value={formatBytes(optResult.originalBytes)}
+                    accent="cyan"
+                  />
+                  <DeltaCard
+                    label="Optimised"
+                    value={formatBytes(optResult.optimizedBytes)}
+                    accent="emerald"
+                  />
+                  <DeltaCard
+                    label="Saved"
+                    value={formatBytes(optResult.reductionBytes)}
+                    sub={`${optResult.reductionPct}% reduction`}
+                    accent={optResult.reductionPct >= 15 ? "emerald" : "amber"}
+                  />
+                  <DeltaCard
+                    label="Passes Applied"
+                    value={`${appliedPassCount} / ${optResult.passResults.length}`}
+                    accent="cyan"
+                  />
+                </div>
+
+                {/* Pass results breakdown */}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                    Pass Results
+                  </div>
+                  {optResult.passResults.map((pr) => (
+                    <div
+                      key={pr.pass}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950/50 border border-white/5 text-xs"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {pr.applied ? (
+                          <CheckCircle2
+                            size={13}
+                            className="text-emerald-400 shrink-0"
+                          />
+                        ) : (
+                          <ChevronRight
+                            size={13}
+                            className="text-slate-500 shrink-0"
+                          />
+                        )}
+                        <span
+                          className={
+                            pr.applied ? "text-slate-200" : "text-slate-400"
+                          }
+                        >
+                          {pr.pass}
+                        </span>
+                        {pr.note && (
+                          <span className="text-slate-500 truncate hidden sm:block">
+                            — {pr.note}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono text-emerald-400 shrink-0 ml-2">
+                        {pr.bytesSaved > 0
+                          ? `-${formatBytes(pr.bytesSaved)}`
+                          : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Soroban spec integrity badge */}
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium
+                  ${
+                    optResult.sorobanSections.length > 0
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-slate-950/40 border-white/5 text-slate-400"
+                  }
+                `}
+                  data-testid="spec-integrity-badge"
+                >
+                  {optResult.sorobanSections.length > 0 ? (
+                    <CheckCircle2
+                      size={13}
+                      className="text-emerald-400 shrink-0"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      size={13}
+                      className="text-amber-400 shrink-0"
+                    />
+                  )}
+                  <span>
+                    {optResult.sorobanSections.length > 0
+                      ? `Soroban contract spec preserved — ${optResult.sorobanSections.length} required section${optResult.sorobanSections.length > 1 ? "s" : ""} intact`
+                      : "No Soroban spec sections detected (non-Soroban binary)"}
+                  </span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 py-2 px-4 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-semibold text-xs transition-all"
+                  >
+                    <ArrowDownToLine size={14} />
+                    Download Optimised Binary
+                  </button>
+                  {onOptimized && (
+                    <button
+                      onClick={handleForwardToDeploy}
+                      className="flex items-center gap-2 py-2 px-4 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-semibold text-xs transition-all"
+                      data-testid="forward-to-deploy"
+                    >
+                      <Rocket size={14} />
+                      Forward to Deploy
+                    </button>
+                  )}
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center gap-2 py-2 px-4 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 font-semibold text-xs transition-all"
+                  >
+                    <SquareCode size={14} />
+                    Optimise Another
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 }

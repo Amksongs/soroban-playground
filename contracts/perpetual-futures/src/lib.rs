@@ -26,9 +26,7 @@ use crate::storage::{
     set_admin, set_funding_rate, set_initialized, set_insurance_fund, set_paused, set_position,
     set_position_count, set_user_collateral, update_open_interest,
 };
-use crate::types::{
-    AccountSummary, Error, FundingRate, OpenInterest, Position, PositionStatus,
-};
+use crate::types::{AccountSummary, Error, FundingRate, OpenInterest, Position, PositionStatus};
 
 pub const MAX_LEVERAGE: u32 = 20; // Up to 20x cross-margin leverage
 pub const MAINTENANCE_MARGIN_BPS: i128 = 500; // 5% maintenance margin
@@ -318,8 +316,8 @@ impl PerpetualFutures {
                 } else {
                     rate_bps as i128
                 };
-                let payment =
-                    (matched_oi * abs_bps * (elapsed as i128)) / ((EIGHT_HOURS_SECONDS as i128) * BPS_DIVISOR);
+                let payment = (matched_oi * abs_bps * (elapsed as i128))
+                    / ((EIGHT_HOURS_SECONDS as i128) * BPS_DIVISOR);
                 if payment > 0 {
                     add_funding_transferred(&env, payment);
                 }
@@ -403,8 +401,10 @@ impl PerpetualFutures {
         };
         set_user_collateral(&env, &pos.trader, user_col);
 
-        env.events()
-            .publish((symbol_short!("liquidate"), position_id), (liquidator, deficit));
+        env.events().publish(
+            (symbol_short!("liquidate"), position_id),
+            (liquidator, deficit),
+        );
 
         Ok(deficit)
     }

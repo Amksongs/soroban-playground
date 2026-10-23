@@ -95,10 +95,13 @@ class WebSocketService {
   mutate(nextState) {
     this.state = nextState;
     broadcastState(Array.from(this.syncSessions.values()), nextState);
-    this.pub.publish(PATCH_CHANNED, JSON.stringify({
-      state: nextState,
-      origin: this.instanceId || null,
-    }));
+    this.pub.publish(
+      PATCH_CHANNED,
+      JSON.stringify({
+        state: nextState,
+        origin: this.instanceId || null,
+      })
+    );
   }
 
   /**

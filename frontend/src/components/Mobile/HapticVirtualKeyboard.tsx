@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 export interface HystematicKey {
   label: string;
@@ -20,18 +20,18 @@ export interface HapticVirtualKeyboardProps {
 }
 
 const DEFAULT_KEYS: HystematicKey[] = [
-  { label: '{', insert: '{', cursorOffset: 1 },
-  { label: '}', insert: '}' },
-  { label: '[', insert: '[', cursorOffset: 1 },
-  { label: ']', insert: ']' },
-  { label: '(', insert: '(', cursorOffset: 1 },
-  { label: ')', insert: ')' },
-  { label: ';', insert: ';' },
-  { label: '->', insert: '->', cursorOffset: 2 },
-  { label: '&', insert: '&' },
-  { label: '*', insert: '*' },
-  { label: '_', insert: '_' },
-  { label: '=', insert: '=' },
+  { label: "{", insert: "{", cursorOffset: 1 },
+  { label: "}", insert: "}" },
+  { label: "[", insert: "[", cursorOffset: 1 },
+  { label: "]", insert: "]" },
+  { label: "(", insert: "(", cursorOffset: 1 },
+  { label: ")", insert: ")" },
+  { label: ";", insert: ";" },
+  { label: "->", insert: "->", cursorOffset: 2 },
+  { label: "&", insert: "&" },
+  { label: "*", insert: "*" },
+  { label: "_", insert: "_" },
+  { label: "=", insert: "=" },
 ];
 
 const HAPTIC_DURATION_MS = 10;
@@ -40,7 +40,10 @@ function triggerHaptic(enabled: boolean): void {
   if (!enabled) {
     return;
   }
-  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') {
+  if (
+    typeof navigator === "undefined" ||
+    typeof navigator.vibrate !== "function"
+  ) {
     return;
   }
   try {
@@ -51,10 +54,10 @@ function triggerHaptic(enabled: boolean): void {
 }
 
 function isTouchDevice(): boolean {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return false;
   }
-  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
 export const HapticVirtualKeyboard: React.FC<HapticVirtualKeyboardProps> = ({
@@ -62,12 +65,12 @@ export const HapticVirtualKeyboard: React.FC<HapticVirtualKeyboardProps> = ({
   onAction,
   hapticsEnabled = true,
   className,
-  ariaLabel = 'Code accessory keys',
+  ariaLabel = "Code accessory keys",
 }) => {
   const [keys] = useState<HystematicKey[]>(DEFAULT_KEYS);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const pressedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const barRef = useRef<HTMLDivExtension | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -83,12 +86,12 @@ export const HapticVirtualKeyboard: React.FC<HapticVirtualKeyboardProps> = ({
     if (!node) {
       return;
     }
-    const handler = (event: TouchStartEvent) => {
+    const handler = (event: TouchEvent) => {
       event.preventDefault();
     };
-    node.addEventListener('touchstart', handler, { passive: false });
+    node.addEventListener("touchstart", handler, { passive: false });
     return () => {
-      node.removeEventListener('touchstart', handler);
+      node.removeEventListener("touchstart", handler);
     };
   }, []);
 
@@ -112,7 +115,7 @@ export const HapticVirtualKeyboard: React.FC<HapticVirtualKeyboardProps> = ({
   return (
     <div
       ref={barRef}
-      className={`flex items-center gap-1 overflow-x-auto px-2 py-1.5 border-t border-slate-700/60 bg-slate-900/95 backdrop-blur scrollbar-none select-none ${className ?? ''}`}
+      className={`flex items-center gap-1 overflow-x-auto px-2 py-1.5 border-t border-slate-700/60 bg-slate-900/95 backdrop-blur scrollbar-none select-none ${className ?? ""}`}
       role="toolbar"
       aria-label={ariaLabel}
       data-testid="haptic-virtual-keyboard"
@@ -136,7 +139,7 @@ export const HapticVirtualKeyboard: React.FC<HapticVirtualKeyboardProps> = ({
             }
           }}
           aria-label={key.label}
-          className={`inline-flex h-touch min-w-touch items-center justify-center rounded-md px-3 font-mono text-sm font-medium transition-colors duration-75 focus:outline-none focus-ring-2 focus:ring-cyan-400 ${pressedKey === key.label ? 'bg-cyan-500 text-slate-950 scale-95' : 'bg-slate-800/90 text-slate-100 active:bg-cyan-500 active:text-slate-950'}`}
+          className={`inline-flex h-touch min-w-touch items-center justify-center rounded-md px-3 font-mono text-sm font-medium transition-colors duration-75 focus:outline-none focus-ring-2 focus:ring-cyan-400 ${pressedKey === key.label ? "bg-cyan-500 text-slate-950 scale-95" : "bg-slate-800/90 text-slate-100 active:bg-cyan-500 active:text-slate-950"}`}
         >
           {key.label}
         </button>

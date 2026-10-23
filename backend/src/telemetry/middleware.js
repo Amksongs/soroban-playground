@@ -63,10 +63,9 @@ export function metricsAuthMiddleware() {
     if (allowedIps.length === 0) return next();
 
     const clientIp =
-      (req.headers['x-forwarded-for'] ?? '')
-        .toString()
-        .split(',')[0]
-        .trim() || req.ip || '';
+      (req.headers['x-forwarded-for'] ?? '').toString().split(',')[0].trim() ||
+      req.ip ||
+      '';
 
     // Loopback is always allowed
     const isLoopback =

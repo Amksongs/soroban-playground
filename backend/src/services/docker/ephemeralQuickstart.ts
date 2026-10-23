@@ -115,24 +115,22 @@ function buildConfig(): OrchestratorConfig {
     rpcPortEnd: parseInt(env.QUICKSTART_RPC_PORT_END ?? '11999', 10),
     friendbotPortStart: parseInt(
       env.QUICKSTART_FRIENDBOT_PORT_START ?? '12000',
-      10,
+      10
     ),
     memoryMb: parseInt(env.QUICKSTART_MEMORY_MB ?? '1536', 10),
     cpuPeriod: parseInt(env.QUICKSTART_CPU_PERIOD ?? '100000', 10),
     cpuQuota: parseInt(env.QUICKSTART_CPU_QUOTA ?? '150000', 10),
     pidsLimit: parseInt(env.QUICKSTART_PIDS_LIMIT ?? '512', 10),
     containerTtlMs: parseInt(env.CONTAINER_TTL_MS ?? '1800000', 10),
-    healthTimeoutMs: parseInt(
-      env.QUICKSTART_HEALTH_TIMEOUT_MS ?? '8000',
-      10,
-    ),
+    healthTimeoutMs: parseInt(env.QUICKSTART_HEALTH_TIMEOUT_MS ?? '8000', 10),
     healthPollMs: parseInt(env.QUICKSTART_HEALTH_POLL_MS ?? '250', 10),
     defaultAccounts: env.QUICKSTART_DEFAULT_ACCOUNTS
-      ? env.QUICKSTART_DEFAULT_ACCOUNTS.split(',').map((a) => a.trim()).filter(Boolean)
+      ? env.QUICKSTART_DEFAULT_ACCOUNTS.split(',')
+          .map((a) => a.trim())
+          .filter(Boolean)
       : [],
     networkPassphrase:
-      env.QUICKSTART_NETWORK_PASSPHRASE ??
-      'Standalone Network ; February 2017',
+      env.QUICKSTART_NETWORK_PASSPHRASE ?? 'Standalone Network ; February 2017',
   };
 }
 
@@ -149,7 +147,7 @@ export class EphemeralQuickstartError extends Error {
       code = 'QUICKSTART_ERROR',
       statusCode = 500,
       details,
-    }: { code?: string; statusCode?: number; details?: unknown } = {},
+    }: { code?: string; statusCode?: number; details?: unknown } = {}
   ) {
     super(message);
     this.name = 'EphemeralQuickstartError';
@@ -172,7 +170,7 @@ class PortAllocator {
 
   constructor(
     private readonly start: number,
-    private readonly end: number,
+    private readonly end: number
   ) {}
 
   /** Reserves and returns the next free port, or throws when the range is full. */
@@ -185,7 +183,7 @@ class PortAllocator {
     }
     throw new EphemeralQuickstartError(
       `Port range ${this.start}–${this.end} exhausted`,
-      { code: 'PORT_RANGE_EXHAUSTED', statusCode: 503 },
+      { code: 'PORT_RANGE_EXHAUSTED', statusCode: 503 }
     );
   }
 
@@ -223,7 +221,9 @@ class DockerClient {
   private readonly socketPath: string | null;
   private readonly host: string | null;
 
-  constructor(config: Pick<OrchestratorConfig, 'dockerSocketPath' | 'dockerHost'>) {
+  constructor(
+    config: Pick<OrchestratorConfig, 'dockerSocketPath' | 'dockerHost'>
+  ) {
     if (config.dockerHost) {
       this.host = config.dockerHost;
       this.socketPath = null;
@@ -285,9 +285,9 @@ class DockerClient {
         reject(
           new EphemeralQuickstartError(
             `Docker API request failed: ${err.message}`,
-            { code: 'DOCKER_API_ERROR', details: err.message },
-          ),
-        ),
+            { code: 'DOCKER_API_ERROR', details: err.message }
+          )
+        )
       );
 
       if (payload !== undefined) req.write(payload);
@@ -326,7 +326,7 @@ class DockerClient {
     if (res.statusCode !== 201) {
       throw new EphemeralQuickstartError(
         `Failed to create Docker network "${name}": HTTP ${res.statusCode}`,
-        { code: 'DOCKER_NETWORK_CREATE_FAILED', details: res.body },
+        { code: 'DOCKER_NETWORK_CREATE_FAILED', details: res.body }
       );
     }
     return (res.body as { Id: string }).Id;
@@ -425,7 +425,7 @@ class DockerClient {
     if (res.statusCode !== 201) {
       throw new EphemeralQuickstartError(
         `Failed to create container "${name}": HTTP ${res.statusCode}`,
-        { code: 'DOCKER_CONTAINER_CREATE_FAILED', details: res.body },
+        { code: 'DOCKER_CONTAINER_CREATE_FAILED', details: res.body }
       );
     }
 
@@ -440,7 +440,7 @@ class DockerClient {
   /** Connects a container to a network. */
   async connectContainerToNetwork(
     containerId: string,
-    networkId: string,
+    networkId: string
   ): Promise<void> {
     const res = await this.request({
       method: 'POST',
@@ -451,7 +451,7 @@ class DockerClient {
     if (res.statusCode !== 200) {
       throw new EphemeralQuickstartError(
         `Failed to connect container ${containerId} to network ${networkId}: HTTP ${res.statusCode}`,
-        { code: 'DOCKER_NETWORK_CONNECT_FAILED', details: res.body },
+        { code: 'DOCKER_NETWORK_CONNECT_FAILED', details: res.body }
       );
     }
   }
@@ -466,7 +466,7 @@ class DockerClient {
     if (res.statusCode !== 204 && res.statusCode !== 304) {
       throw new EphemeralQuickstartError(
         `Failed to start container ${containerId}: HTTP ${res.statusCode}`,
-        { code: 'DOCKER_CONTAINER_START_FAILED', details: res.body },
+        { code: 'DOCKER_CONTAINER_START_FAILED', details: res.body }
       );
     }
   }
@@ -486,7 +486,7 @@ class DockerClient {
    */
   async removeContainer(
     containerId: string,
-    { volumes = true, force = false } = {},
+    { volumes = true, force = false } = {}
   ): Promise<void> {
     const qs = `?v=${volumes}&force=${force}`;
     await this.request({
@@ -500,33 +500,45 @@ class DockerClient {
    * Used for orphan detection on startup.
    */
   async listManagedContainers(): Promise<
-    Array<{ Id: string; Labels: Record<string, string>; State: string; Ports: Array<{ PrivatePort: number; PublicPort: number; IP: string }> }>
+    Array<{
+      Id: string;
+      Labels: Record<string, string>;
+      State: string;
+      Ports: Array<{ PrivatePort: number; PublicPort: number; IP: string }>;
+    }>
   > {
     const res = await this.request({
       method: 'GET',
-      path: '/containers/json?filters=' +
+      path:
+        '/containers/json?filters=' +
         encodeURIComponent(
-          JSON.stringify({ label: ['soroban-playground.managed=true'] }),
+          JSON.stringify({ label: ['soroban-playground.managed=true'] })
         ) +
         '&all=true',
     });
 
     if (res.statusCode !== 200) return [];
-    return (res.body as Array<{ Id: string; Labels: Record<string, string>; State: string; Ports: Array<{ PrivatePort: number; PublicPort: number; IP: string }> }>) ?? [];
+    return (
+      (res.body as Array<{
+        Id: string;
+        Labels: Record<string, string>;
+        State: string;
+        Ports: Array<{ PrivatePort: number; PublicPort: number; IP: string }>;
+      }>) ?? []
+    );
   }
 
   /**
    * Lists networks that carry the `soroban-playground.managed` label.
    * Used for orphan cleanup on startup.
    */
-  async listManagedNetworks(): Promise<
-    Array<{ Id: string; Name: string }>
-  > {
+  async listManagedNetworks(): Promise<Array<{ Id: string; Name: string }>> {
     const res = await this.request({
       method: 'GET',
-      path: '/networks?filters=' +
+      path:
+        '/networks?filters=' +
         encodeURIComponent(
-          JSON.stringify({ label: ['soroban-playground.managed=true'] }),
+          JSON.stringify({ label: ['soroban-playground.managed=true'] })
         ),
     });
 
@@ -545,7 +557,7 @@ class DockerClient {
  */
 async function waitForRpcHealth(
   rpcPort: number,
-  { timeoutMs, pollMs }: { timeoutMs: number; pollMs: number },
+  { timeoutMs, pollMs }: { timeoutMs: number; pollMs: number }
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   const body = JSON.stringify({
@@ -580,10 +592,13 @@ async function waitForRpcHealth(
               resolve(false);
             }
           });
-        },
+        }
       );
       req.on('error', () => resolve(false));
-      req.on('timeout', () => { req.destroy(); resolve(false); });
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
       req.write(body);
       req.end();
     });
@@ -606,7 +621,7 @@ async function waitForRpcHealth(
 async function prefundAccounts(
   friendbotPort: number,
   accounts: string[],
-  log: (msg: string, meta?: unknown) => void,
+  log: (msg: string, meta?: unknown) => void
 ): Promise<void> {
   for (const addr of accounts) {
     await new Promise<void>((resolve) => {
@@ -628,13 +643,16 @@ async function prefundAccounts(
             }
             resolve();
           });
-        },
+        }
       );
       req.on('error', (err) => {
         log('prefund_error', { addr, error: (err as Error).message });
         resolve();
       });
-      req.on('timeout', () => { req.destroy(); resolve(); });
+      req.on('timeout', () => {
+        req.destroy();
+        resolve();
+      });
       req.end();
     });
   }
@@ -651,8 +669,14 @@ interface OrchestratorEvents {
 }
 
 export declare interface EphemeralQuickstartOrchestrator {
-  on<K extends keyof OrchestratorEvents>(event: K, listener: OrchestratorEvents[K]): this;
-  emit<K extends keyof OrchestratorEvents>(event: K, ...args: Parameters<OrchestratorEvents[K]>): boolean;
+  on<K extends keyof OrchestratorEvents>(
+    event: K,
+    listener: OrchestratorEvents[K]
+  ): this;
+  emit<K extends keyof OrchestratorEvents>(
+    event: K,
+    ...args: Parameters<OrchestratorEvents[K]>
+  ): boolean;
 }
 
 /**
@@ -686,11 +710,12 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
     this.docker = new DockerClient(this.config);
     this.rpcPorts = new PortAllocator(
       this.config.rpcPortStart,
-      this.config.rpcPortEnd,
+      this.config.rpcPortEnd
     );
     this.friendbotPorts = new PortAllocator(
       this.config.friendbotPortStart,
-      this.config.friendbotPortStart + (this.config.rpcPortEnd - this.config.rpcPortStart),
+      this.config.friendbotPortStart +
+        (this.config.rpcPortEnd - this.config.rpcPortStart)
     );
   }
 
@@ -705,8 +730,8 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
     if (!alive) {
       throw new EphemeralQuickstartError(
         'Docker daemon is not reachable. Ensure the Docker socket is mounted ' +
-        'or DOCKER_HOST is configured correctly.',
-        { code: 'DOCKER_UNAVAILABLE', statusCode: 503 },
+          'or DOCKER_HOST is configured correctly.',
+        { code: 'DOCKER_UNAVAILABLE', statusCode: 503 }
       );
     }
 
@@ -738,11 +763,14 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
    * @throws {EphemeralQuickstartError} if a session already exists, Docker
    *   fails, or the health check times out.
    */
-  async spawn(sessionId: string, opts: SpawnOptions = {}): Promise<ContainerSession> {
+  async spawn(
+    sessionId: string,
+    opts: SpawnOptions = {}
+  ): Promise<ContainerSession> {
     if (this.sessions.has(sessionId)) {
       throw new EphemeralQuickstartError(
         `Session "${sessionId}" already exists`,
-        { code: 'SESSION_ALREADY_EXISTS', statusCode: 409 },
+        { code: 'SESSION_ALREADY_EXISTS', statusCode: 409 }
       );
     }
 
@@ -772,8 +800,7 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
       session.networkId = networkId;
 
       // 2. Create the container (creates + connects it to the bridge network)
-      const memoryBytes =
-        (opts.memoryMb ?? this.config.memoryMb) * 1024 * 1024;
+      const memoryBytes = (opts.memoryMb ?? this.config.memoryMb) * 1024 * 1024;
       const cpuQuota = opts.cpuQuota ?? this.config.cpuQuota;
 
       const containerId = await this.docker.createContainer({
@@ -791,7 +818,12 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
       });
       session.containerId = containerId;
 
-      this._log('container_created', { sessionId, containerId, rpcPort, friendbotPort });
+      this._log('container_created', {
+        sessionId,
+        containerId,
+        rpcPort,
+        friendbotPort,
+      });
       this.emit('spawned', { ...session });
 
       // 3. Start the container
@@ -807,8 +839,8 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
         session.status = 'error';
         throw new EphemeralQuickstartError(
           `Soroban RPC on port ${rpcPort} did not become healthy within ` +
-          `${this.config.healthTimeoutMs} ms`,
-          { code: 'RPC_HEALTH_TIMEOUT', statusCode: 504 },
+            `${this.config.healthTimeoutMs} ms`,
+          { code: 'RPC_HEALTH_TIMEOUT', statusCode: 504 }
         );
       }
 
@@ -819,7 +851,7 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
       ];
       if (accounts.length > 0) {
         await prefundAccounts(friendbotPort, accounts, (msg, meta) =>
-          this._log(msg, { sessionId, ...meta }),
+          this._log(msg, { sessionId, ...meta })
         );
       }
 
@@ -874,7 +906,7 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
    */
   async destroy(
     sessionId: string,
-    reason: 'ttl' | 'explicit' = 'explicit',
+    reason: 'ttl' | 'explicit' = 'explicit'
   ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) return;
@@ -920,10 +952,17 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
         // Stop and remove the orphan (best-effort)
         try {
           await this.docker.stopContainer(c.Id, 5);
-        } catch { /* already stopped */ }
+        } catch {
+          /* already stopped */
+        }
         try {
-          await this.docker.removeContainer(c.Id, { volumes: true, force: true });
-        } catch { /* already removed */ }
+          await this.docker.removeContainer(c.Id, {
+            volumes: true,
+            force: true,
+          });
+        } catch {
+          /* already removed */
+        }
       }
 
       // Also remove any orphaned managed networks
@@ -964,7 +1003,8 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
     const expired: string[] = [];
 
     for (const [id, session] of this.sessions) {
-      if (session.status === 'stopping' || session.status === 'stopped') continue;
+      if (session.status === 'stopping' || session.status === 'stopped')
+        continue;
       const idle = now - new Date(session.lastActivityAt).getTime();
       if (idle >= this.config.containerTtlMs) {
         expired.push(id);
@@ -974,7 +1014,10 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
     for (const id of expired) {
       this._log('ttl_expiry', { sessionId: id });
       await this.destroy(id, 'ttl').catch((err) => {
-        this._log('reap_error', { sessionId: id, error: (err as Error).message });
+        this._log('reap_error', {
+          sessionId: id,
+          error: (err as Error).message,
+        });
         this.emit('error', id, err as Error);
       });
     }
@@ -991,13 +1034,17 @@ export class EphemeralQuickstartOrchestrator extends EventEmitter {
     if (session.containerId) {
       try {
         await this.docker.stopContainer(session.containerId, 10);
-      } catch { /* already stopped or never started */ }
+      } catch {
+        /* already stopped or never started */
+      }
       try {
         await this.docker.removeContainer(session.containerId, {
           volumes: true,
           force: true,
         });
-      } catch { /* already removed */ }
+      } catch {
+        /* already removed */
+      }
     }
 
     if (session.networkId) {

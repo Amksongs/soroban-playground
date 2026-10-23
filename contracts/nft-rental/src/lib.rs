@@ -16,9 +16,8 @@ mod types;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env};
 
 use crate::storage::{
-    get_admin, get_balance, get_escrow, get_listing, get_nft, is_initialized,
-    remove_escrow, remove_listing, set_admin, set_balance, set_escrow,
-    set_initialized, set_listing, set_nft,
+    get_admin, get_balance, get_escrow, get_listing, get_nft, is_initialized, remove_escrow,
+    remove_listing, set_admin, set_balance, set_escrow, set_initialized, set_listing, set_nft,
 };
 use crate::types::{Error, EscrowRecord, NFTRecord, RentalListing};
 
@@ -265,10 +264,8 @@ impl NFTRental {
         };
         set_escrow(&env, &escrow);
 
-        env.events().publish(
-            (symbol_short!("dep_escr"), token_id),
-            (renter, upfront_fee),
-        );
+        env.events()
+            .publish((symbol_short!("dep_escr"), token_id), (renter, upfront_fee));
         Ok(())
     }
 
@@ -313,13 +310,7 @@ impl NFTRental {
         duration_ledgers: u32,
         upfront_fee: i128,
     ) -> Result<(), Error> {
-        Self::deposit_escrow(
-            env.clone(),
-            renter,
-            token_id,
-            duration_ledgers,
-            upfront_fee,
-        )?;
+        Self::deposit_escrow(env.clone(), renter, token_id, duration_ledgers, upfront_fee)?;
         Self::start_lease(env, token_id)
     }
 

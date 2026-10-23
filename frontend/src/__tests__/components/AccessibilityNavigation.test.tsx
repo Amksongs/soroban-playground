@@ -1,9 +1,12 @@
 import React, { useRef, useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+import DeployPanel from "@/components/DeployPanel";
 import { SkipNavigation } from "@/accessibility/SkipNavigation";
 import { ScreenReaderAnnouncer } from "@/accessibility/ScreenReaderAnnouncer";
 import { useModalAccessibility } from "@/accessibility/useModalAccessibility";
 import { ConsoleAndEventsDrawer } from "@/components/ConsoleAndEventsDrawer";
+
+jest.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
 jest.mock("@/components/Console", () => ({
   __esModule: true,
@@ -32,7 +35,8 @@ test("skip links move focus to the requested region", () => {
   HTMLElement.prototype.scrollIntoView = jest.fn();
   fireEvent.click(screen.getByRole("link", { name: "Skip to editor" }));
   expect(document.activeElement?.id).toBe("workspace-editor");
-  fireEvent.click(screen.getByRole("link", { name: "Skip to console" }));
+  expect(screen.queryByRole("link", { name: "Skip to console" })).toBeNull();
+  fireEvent.click(screen.getByRole("link", { name: "Skip to main content" }));
   expect(document.activeElement?.id).toBe("main-content");
 });
 test("modal hook handles Escape, contains Tab and restores trigger focus", () => {
@@ -82,4 +86,27 @@ test("output tabs support arrows and selection semantics", () => {
   expect(screen.getByRole("tabpanel")).toHaveTextContent("Terminal pane");
   fireEvent.keyDown(document.activeElement!, { key: "End" });
   expect(screen.getByRole("tab", { name: "Event Streamer" })).toHaveFocus();
+});
+
+test("busy build controls retain keyboard focus and prevent duplicate requests", () => {
+  const onCompile = jest.fn();
+  const props = {
+    onCompile,
+    onDeploy: jest.fn(),
+    isCompiling: false,
+    isDeploying: false,
+    hasCompiled: true,
+  };
+  const { rerender } = render(<DeployPanel {...props} />);
+  const button = screen.getByRole("button", { name: "Compile", exact: true });
+  button.focus();
+  rerender(<DeployPanel {...props} isCompiling />);
+  expect(button).toHaveFocus();
+  expect(button).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(button);
+  expect(onCompile).not.toHaveBeenCalled();
+  rerender(<DeployPanel {...props} />);
+  expect(button).toHaveFocus();
+  fireEvent.click(button);
+  expect(onCompile).toHaveBeenCalledTimes(1);
 });

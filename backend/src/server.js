@@ -392,11 +392,7 @@ async function start() {
         normalizedHost === 'localhost' ||
         normalizedHost === '::1' ||
         normalizedHost.startsWith('127.');
-      if (
-        process.env.NODE_ENV === 'production' &&
-        !tls &&
-        !isLoopback
-      ) {
+      if (process.env.NODE_ENV === 'production' && !tls && !isLoopback) {
         throw new Error(
           'GRPC_TLS must be enabled before exposing gRPC beyond loopback'
         );

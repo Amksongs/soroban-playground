@@ -22,7 +22,9 @@ test.beforeEach(async ({ page }) => {
 });
 async function scan(page: Page, info: TestInfo) {
   await expect(page.locator("#main-content")).toBeAttached();
-  await page.waitForLoadState("networkidle");
+  // Polling network panels never become network-idle; wait for rendered content.
+  await expect(page.locator("#main-content")).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
   const result = await new AxeBuilder({ page }).analyze();
   await info.attach("axe-results", {
     body: JSON.stringify(result, null, 2),
@@ -53,12 +55,10 @@ test("skip links move focus and keyboard focus remains visible", async ({
   await expect(first).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
-  const focus = await page
-    .locator("#main-content")
-    .evaluate((element) => ({
-      width: getComputedStyle(element).outlineWidth,
-      style: getComputedStyle(element).outlineStyle,
-    }));
+  const focus = await page.locator("#main-content").evaluate((element) => ({
+    width: getComputedStyle(element).outlineWidth,
+    style: getComputedStyle(element).outlineStyle,
+  }));
   expect(parseFloat(focus.width)).toBeGreaterThanOrEqual(3);
   expect(focus.style).toBe("solid");
 });
@@ -153,6 +153,28 @@ test("build and deployment outcomes reach live regions without moving keyboard f
       }),
     }),
   );
+  await page.route("**/api/deploy/preflight", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        sourceAccount: "deploy",
+        deployer: "GTEST",
+        contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+        wasmHash: "a".repeat(64),
+        codeStatus: "live",
+        checkedAt: Date.now(),
+        elapsedMs: 10,
+        funding: {
+          reserveStroops: "10000000",
+          availableStroops: "100000000",
+          feeStroops: "100",
+        },
+        checks: [{ id: "network", label: "Network verified", passed: true }],
+        warnings: [],
+      }),
+    }),
+  );
   await page.goto("/");
   const compile = page.getByRole("button", { name: "Compile", exact: true });
   await compile.click();
@@ -160,9 +182,15 @@ test("build and deployment outcomes reach live regions without moving keyboard f
     "Compilation succeeded",
   );
   const deploy = page.getByRole("button", {
-    name: "Deploy to Testnet",
-    exact: true,
+    name: /^Deploy to /,
   });
+  await page
+    .getByRole("button", { name: "Generate salt", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Run pre-flight checks", exact: true })
+    .click();
+  await expect(deploy).toHaveAttribute("aria-disabled", "false");
   await deploy.click();
   await expect(page.locator("#a11y-live-region")).toContainText(
     "Deployment succeeded on testnet",

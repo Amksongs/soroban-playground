@@ -51,10 +51,7 @@ pub fn set_oracle(env: &Env, oracle: &Address) {
 }
 
 pub fn get_divisor(env: &Env) -> i128 {
-    env.storage()
-        .instance()
-        .get(&DataKey::Divisor)
-        .unwrap_or(0)
+    env.storage().instance().get(&DataKey::Divisor).unwrap_or(0)
 }
 
 pub fn set_divisor(env: &Env, divisor: i128) {

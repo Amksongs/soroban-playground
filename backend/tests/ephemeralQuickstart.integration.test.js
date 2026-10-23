@@ -111,13 +111,13 @@ function makeOrchestrator(overrides = {}) {
     dockerHost: null,
     quickstartImage: 'stellar/quickstart:testing',
     rpcPortStart: 20000,
-    rpcPortEnd: 20009,       // 10-port range
+    rpcPortEnd: 20009, // 10-port range
     friendbotPortStart: 21000,
     memoryMb: 512,
     cpuPeriod: 100000,
     cpuQuota: 100000,
     pidsLimit: 128,
-    containerTtlMs: 500,     // 0.5 s for reaper tests
+    containerTtlMs: 500, // 0.5 s for reaper tests
     healthTimeoutMs: 300,
     healthPollMs: 50,
     defaultAccounts: [],
@@ -136,7 +136,12 @@ beforeEach(() => {
 describe('initialize()', () => {
   it('throws DOCKER_UNAVAILABLE when daemon is unreachable', async () => {
     http.request.mockImplementation((opts, _cb) => {
-      const fakeReq = { write: jest.fn(), end: jest.fn(), on: jest.fn(), destroy: jest.fn() };
+      const fakeReq = {
+        write: jest.fn(),
+        end: jest.fn(),
+        on: jest.fn(),
+        destroy: jest.fn(),
+      };
       fakeReq.on.mockImplementation((event, handler) => {
         if (event === 'error') setImmediate(() => handler(new Error('ENOENT')));
       });
@@ -218,7 +223,9 @@ describe('spawn() — happy path', () => {
     await orc.initialize();
 
     const events = [];
-    orc.on('spawned', (s) => events.push({ event: 'spawned', id: s.sessionId }));
+    orc.on('spawned', (s) =>
+      events.push({ event: 'spawned', id: s.sessionId })
+    );
     orc.on('ready', (s) => events.push({ event: 'ready', id: s.sessionId }));
 
     await orc.spawn('session-events');
@@ -251,7 +258,7 @@ describe('Network isolation', () => {
 
     // Find the createNetwork call (POST /networks/create)
     const createNetworkCall = http.request.mock.calls.find(
-      ([opts]) => opts.path === '/networks/create',
+      ([opts]) => opts.path === '/networks/create'
     );
     expect(createNetworkCall).toBeDefined();
 
@@ -300,8 +307,16 @@ describe('spawn() — health check timeout', () => {
       [201, { Id: 'ctr-tmo' }],
       [200, {}],
       [204, null],
-      unhealthyPoll, unhealthyPoll, unhealthyPoll, unhealthyPoll, unhealthyPoll,
-      unhealthyPoll, unhealthyPoll, unhealthyPoll, unhealthyPoll, unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
+      unhealthyPoll,
       // Cleanup calls (stop, remove, removeNetwork) follow — let them succeed
       [204, null],
       [204, null],
@@ -311,34 +326,55 @@ describe('spawn() — health check timeout', () => {
     const orc = makeOrchestrator({ healthTimeoutMs: 200, healthPollMs: 40 });
 
     // Skip orphan cleanup for this test
-    jest.spyOn(orc, '_cleanupOrphans' in orc ? '_cleanupOrphans' : 'initialize')
+    jest
+      .spyOn(orc, '_cleanupOrphans' in orc ? '_cleanupOrphans' : 'initialize')
       .mockResolvedValue?.();
 
     // Re-register mock for _ping only
     http.request.mockImplementation((opts, callback) => {
       const { fakeReq, fakeRes } = makeFakeHttpExchange(
-        opts.path === '/_ping' ? 200
-          : opts.path === '/containers/json' ? 200
-          : opts.path === '/networks' ? 200
-          : opts.path === '/networks/create' ? 201
-          : opts.path?.startsWith?.('/containers/create') ? 201
-          : opts.path?.startsWith?.('/networks/') && opts.method === 'POST' ? 200
-          : opts.path?.startsWith?.('/containers/') && opts.path?.endsWith?.('/start') ? 204
-          : 200,
-        opts.path === '/containers/json' ? []
-          : opts.path === '/networks' ? []
-          : opts.path === '/networks/create' ? { Id: 'net-tmo2' }
-          : opts.path?.startsWith?.('/containers/create') ? { Id: 'ctr-tmo2' }
-          : opts.path?.startsWith?.('/networks/') && opts.method === 'POST' ? {}
-          : opts.path?.startsWith?.('/containers/') && opts.path?.endsWith?.('/start') ? null
-          : { result: { status: 'degraded' } },   // health poll always degraded
+        opts.path === '/_ping'
+          ? 200
+          : opts.path === '/containers/json'
+            ? 200
+            : opts.path === '/networks'
+              ? 200
+              : opts.path === '/networks/create'
+                ? 201
+                : opts.path?.startsWith?.('/containers/create')
+                  ? 201
+                  : opts.path?.startsWith?.('/networks/') &&
+                      opts.method === 'POST'
+                    ? 200
+                    : opts.path?.startsWith?.('/containers/') &&
+                        opts.path?.endsWith?.('/start')
+                      ? 204
+                      : 200,
+        opts.path === '/containers/json'
+          ? []
+          : opts.path === '/networks'
+            ? []
+            : opts.path === '/networks/create'
+              ? { Id: 'net-tmo2' }
+              : opts.path?.startsWith?.('/containers/create')
+                ? { Id: 'ctr-tmo2' }
+                : opts.path?.startsWith?.('/networks/') &&
+                    opts.method === 'POST'
+                  ? {}
+                  : opts.path?.startsWith?.('/containers/') &&
+                      opts.path?.endsWith?.('/start')
+                    ? null
+                    : { result: { status: 'degraded' } } // health poll always degraded
       );
 
       if (callback) setImmediate(() => callback(fakeRes));
       return fakeReq;
     });
 
-    const orcFresh = makeOrchestrator({ healthTimeoutMs: 200, healthPollMs: 40 });
+    const orcFresh = makeOrchestrator({
+      healthTimeoutMs: 200,
+      healthPollMs: 40,
+    });
     await orcFresh.initialize();
 
     await expect(orcFresh.spawn('timeout-session')).rejects.toMatchObject({
@@ -358,7 +394,7 @@ describe('spawn() — Docker create failure', () => {
       [200, 'OK'],
       [200, []],
       [200, []],
-      [201, { Id: 'net-fail' }],  // network create succeeds
+      [201, { Id: 'net-fail' }], // network create succeeds
       [500, { message: 'Internal Server Error' }], // container create fails
       // Cleanup: removeContainer (no-op), removeNetwork
       [204, null],
@@ -443,8 +479,14 @@ describe('destroy()', () => {
 
     // Verify Docker API calls included stop and delete
     const paths = http.request.mock.calls.map(([opts]) => opts.path);
-    expect(paths.some((p) => p?.includes(`/containers/ctr-del/stop`))).toBe(true);
-    expect(paths.some((p) => p?.startsWith(`/containers/ctr-del`) && p?.includes('?v='))).toBe(true);
+    expect(paths.some((p) => p?.includes(`/containers/ctr-del/stop`))).toBe(
+      true
+    );
+    expect(
+      paths.some(
+        (p) => p?.startsWith(`/containers/ctr-del`) && p?.includes('?v=')
+      )
+    ).toBe(true);
     expect(paths.some((p) => p === `/networks/net-del`)).toBe(true);
   });
 
@@ -492,7 +534,9 @@ describe('destroy() — idempotent', () => {
       [200, {}],
       [204, null],
       [200, { result: { status: 'healthy' } }],
-      [204, null], [204, null], [204, null],
+      [204, null],
+      [204, null],
+      [204, null],
     ]);
 
     const orc = makeOrchestrator();
@@ -516,10 +560,16 @@ describe('TTL reaper', () => {
       [204, null],
       [200, { result: { status: 'healthy' } }],
       // destroy calls
-      [204, null], [204, null], [204, null],
+      [204, null],
+      [204, null],
+      [204, null],
     ]);
 
-    const orc = makeOrchestrator({ containerTtlMs: 100, healthTimeoutMs: 300, healthPollMs: 30 });
+    const orc = makeOrchestrator({
+      containerTtlMs: 100,
+      healthTimeoutMs: 300,
+      healthPollMs: 30,
+    });
     await orc.initialize();
     await orc.spawn('reap-session');
 
@@ -544,7 +594,11 @@ describe('TTL reaper', () => {
       [200, { result: { status: 'healthy' } }],
     ]);
 
-    const orc = makeOrchestrator({ containerTtlMs: 200, healthTimeoutMs: 300, healthPollMs: 30 });
+    const orc = makeOrchestrator({
+      containerTtlMs: 200,
+      healthTimeoutMs: 300,
+      healthPollMs: 30,
+    });
     await orc.initialize();
     await orc.spawn('live-session');
 
@@ -567,17 +621,20 @@ describe('_cleanupOrphans()', () => {
     setupDockerResponses([
       [200, 'OK'],
       // listManagedContainers returns one orphan
-      [200, [
-        {
-          Id: orphanId,
-          Labels: {
-            'soroban-playground.managed': 'true',
-            'soroban-playground.session': 'dead-session-xyz',
+      [
+        200,
+        [
+          {
+            Id: orphanId,
+            Labels: {
+              'soroban-playground.managed': 'true',
+              'soroban-playground.session': 'dead-session-xyz',
+            },
+            State: 'running',
+            Ports: [],
           },
-          State: 'running',
-          Ports: [],
-        },
-      ]],
+        ],
+      ],
       // listManagedNetworks — one stale network
       [200, [{ Id: 'net-orphan', Name: 'soroban-net-dead' }]],
       // stop orphan container
@@ -593,8 +650,16 @@ describe('_cleanupOrphans()', () => {
 
     const paths = http.request.mock.calls.map(([opts]) => opts.path);
     // Stop and remove should have been called for the orphan container
-    expect(paths.some((p) => p?.includes(`/containers/${orphanId}/stop`))).toBe(true);
-    expect(paths.some((p) => p?.startsWith(`/containers/${orphanId}`) && opts => opts?.method === 'DELETE' || p?.includes('?v='))).toBe(true);
+    expect(paths.some((p) => p?.includes(`/containers/${orphanId}/stop`))).toBe(
+      true
+    );
+    expect(
+      http.request.mock.calls.some(
+        ([opts]) =>
+          opts.path?.startsWith(`/containers/${orphanId}`) &&
+          opts.method === 'DELETE'
+      )
+    ).toBe(true);
   });
 });
 
@@ -672,7 +737,7 @@ describe('Port allocator exhaustion', () => {
         [201, { Id: `ctr-exhaust-${i}` }],
         [200, {}],
         [204, null],
-        [200, { result: { status: 'healthy' } }],
+        [200, { result: { status: 'healthy' } }]
       );
     }
 
@@ -697,7 +762,8 @@ describe('Port allocator exhaustion', () => {
 // ── 13. Friendbot pre-funding ─────────────────────────────────────────────────
 describe('Friendbot pre-funding', () => {
   it('hits the friendbot endpoint for each defaultAccounts entry', async () => {
-    const TEST_ACCOUNT = 'GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789012345';
+    const TEST_ACCOUNT =
+      'GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789012345';
 
     setupDockerResponses([
       [200, 'OK'],
@@ -717,8 +783,9 @@ describe('Friendbot pre-funding', () => {
     await orc.spawn('fb-session');
 
     // Verify a request was made with the friendbot path
-    const friendbotCall = http.request.mock.calls.find(([opts]) =>
-      typeof opts.path === 'string' && opts.path.startsWith('/?addr='),
+    const friendbotCall = http.request.mock.calls.find(
+      ([opts]) =>
+        typeof opts.path === 'string' && opts.path.startsWith('/?addr=')
     );
     expect(friendbotCall).toBeDefined();
     expect(friendbotCall[0].path).toContain(encodeURIComponent(TEST_ACCOUNT));
@@ -738,7 +805,9 @@ describe('shutdown()', () => {
       [204, null],
       [200, { result: { status: 'healthy' } }],
       // destroy
-      [204, null], [204, null], [204, null],
+      [204, null],
+      [204, null],
+      [204, null],
     ]);
 
     const orc = makeOrchestrator();

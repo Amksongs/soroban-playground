@@ -16,10 +16,18 @@ import { jest } from '@jest/globals';
 const mockSend = jest.fn();
 jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest.fn().mockImplementation(() => ({ send: mockSend })),
-  PutObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'PutObject' })),
-  GetObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'GetObject' })),
-  HeadObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'HeadObject' })),
-  DeleteObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'DeleteObject' })),
+  PutObjectCommand: jest
+    .fn()
+    .mockImplementation((args) => ({ ...args, _type: 'PutObject' })),
+  GetObjectCommand: jest
+    .fn()
+    .mockImplementation((args) => ({ ...args, _type: 'GetObject' })),
+  HeadObjectCommand: jest
+    .fn()
+    .mockImplementation((args) => ({ ...args, _type: 'HeadObject' })),
+  DeleteObjectCommand: jest
+    .fn()
+    .mockImplementation((args) => ({ ...args, _type: 'DeleteObject' })),
 }));
 
 // ─── Import module under test ─────────────────────────────────────────────────
@@ -33,8 +41,11 @@ const {
 
 function makeInputs(overrides = {}) {
   return {
-    sourceFiles: { 'src/lib.rs': '#![no_std]\npub fn add(a: u64) -> u64 { a }' },
-    cargoLock: 'version = 3\n[[package]]\nname = "soroban-sdk"\nversion = "20.0.0"',
+    sourceFiles: {
+      'src/lib.rs': '#![no_std]\npub fn add(a: u64) -> u64 { a }',
+    },
+    cargoLock:
+      'version = 3\n[[package]]\nname = "soroban-sdk"\nversion = "20.0.0"',
     rustVersion: '1.80.0',
     optimizationFlags: ['--release'],
     ...overrides,
@@ -61,8 +72,14 @@ function makeRedisMock() {
     isFallbackMode: false,
     client: {},
     get: jest.fn(async (key) => store.get(key) ?? null),
-    set: jest.fn(async (key, value) => { store.set(key, value); return 'OK'; }),
-    delete: jest.fn(async (key) => { store.delete(key); return 1; }),
+    set: jest.fn(async (key, value) => {
+      store.set(key, value);
+      return 'OK';
+    }),
+    delete: jest.fn(async (key) => {
+      store.delete(key);
+      return 1;
+    }),
     _store: store,
   };
 }
@@ -104,14 +121,22 @@ describe('computeCacheKey', () => {
   });
 
   it('is independent of optimizationFlags order', () => {
-    const a = computeCacheKey(makeInputs({ optimizationFlags: ['--release', '--opt-level=3'] }));
-    const b = computeCacheKey(makeInputs({ optimizationFlags: ['--opt-level=3', '--release'] }));
+    const a = computeCacheKey(
+      makeInputs({ optimizationFlags: ['--release', '--opt-level=3'] })
+    );
+    const b = computeCacheKey(
+      makeInputs({ optimizationFlags: ['--opt-level=3', '--release'] })
+    );
     expect(a).toBe(b);
   });
 
   it('produces different keys for different source content', () => {
-    const a = computeCacheKey(makeInputs({ sourceFiles: { 'src/lib.rs': 'fn a() {}' } }));
-    const b = computeCacheKey(makeInputs({ sourceFiles: { 'src/lib.rs': 'fn b() {}' } }));
+    const a = computeCacheKey(
+      makeInputs({ sourceFiles: { 'src/lib.rs': 'fn a() {}' } })
+    );
+    const b = computeCacheKey(
+      makeInputs({ sourceFiles: { 'src/lib.rs': 'fn b() {}' } })
+    );
     expect(a).not.toBe(b);
   });
 
@@ -134,17 +159,25 @@ describe('computeCacheKey', () => {
   });
 
   it('produces different keys for different file paths (same content)', () => {
-    const a = computeCacheKey(makeInputs({ sourceFiles: { 'src/lib.rs': 'fn x() {}' } }));
-    const b = computeCacheKey(makeInputs({ sourceFiles: { 'src/main.rs': 'fn x() {}' } }));
+    const a = computeCacheKey(
+      makeInputs({ sourceFiles: { 'src/lib.rs': 'fn x() {}' } })
+    );
+    const b = computeCacheKey(
+      makeInputs({ sourceFiles: { 'src/main.rs': 'fn x() {}' } })
+    );
     expect(a).not.toBe(b);
   });
 
   it('handles empty source files map without throwing', () => {
-    expect(() => computeCacheKey(makeInputs({ sourceFiles: {} }))).not.toThrow();
+    expect(() =>
+      computeCacheKey(makeInputs({ sourceFiles: {} }))
+    ).not.toThrow();
   });
 
   it('handles empty optimization flags without throwing', () => {
-    expect(() => computeCacheKey(makeInputs({ optimizationFlags: [] }))).not.toThrow();
+    expect(() =>
+      computeCacheKey(makeInputs({ optimizationFlags: [] }))
+    ).not.toThrow();
   });
 
   it('handles a large number of source files deterministically', () => {
@@ -403,7 +436,9 @@ describe('CompilationCacheService', () => {
       };
 
       // Redis returns metadata
-      svc._redisOverride.get = jest.fn().mockResolvedValue(JSON.stringify(entry));
+      svc._redisOverride.get = jest
+        .fn()
+        .mockResolvedValue(JSON.stringify(entry));
       // S3 send returns WASM body for GetObject
       mockSend.mockResolvedValueOnce({ Body: bufferToReadable(wasm) });
 
@@ -463,17 +498,23 @@ describe('CompilationCacheService', () => {
     });
 
     it('increments stores counter on each store call', async () => {
-      await svc.store(computeCacheKey(makeInputs({ rustVersion: '1.78.0' })), makeWasm());
-      await svc.store(computeCacheKey(makeInputs({ rustVersion: '1.79.0' })), makeWasm());
+      await svc.store(
+        computeCacheKey(makeInputs({ rustVersion: '1.78.0' })),
+        makeWasm()
+      );
+      await svc.store(
+        computeCacheKey(makeInputs({ rustVersion: '1.79.0' })),
+        makeWasm()
+      );
       expect(svc.getStats().stores).toBe(2);
     });
 
     it('computes hitRatio correctly', async () => {
       const hash = computeCacheKey(makeInputs());
       await svc.store(hash, makeWasm());
-      await svc.lookup(hash);      // hit
-      await svc.lookup('miss-1');  // miss
-      await svc.lookup('miss-2');  // miss
+      await svc.lookup(hash); // hit
+      await svc.lookup('miss-1'); // miss
+      await svc.lookup('miss-2'); // miss
       const stats = svc.getStats();
       // 1 hit / 3 total ≈ 0.333
       expect(stats.hitRatio).toBeCloseTo(1 / 3, 2);
@@ -504,8 +545,14 @@ describe('CompilationCacheService', () => {
     });
 
     it('reports lruEntryCount and lruSize', async () => {
-      await svc.store(computeCacheKey(makeInputs({ rustVersion: '1.78.0' })), makeWasm('a'));
-      await svc.store(computeCacheKey(makeInputs({ rustVersion: '1.79.0' })), makeWasm('bb'));
+      await svc.store(
+        computeCacheKey(makeInputs({ rustVersion: '1.78.0' })),
+        makeWasm('a')
+      );
+      await svc.store(
+        computeCacheKey(makeInputs({ rustVersion: '1.79.0' })),
+        makeWasm('bb')
+      );
       const stats = svc.getStats();
       expect(stats.lruEntryCount).toBe(2);
       expect(stats.lruSize).toBeGreaterThan(0);
@@ -606,7 +653,9 @@ describe('CompilationCacheService', () => {
       };
 
       // Redis returns valid metadata; S3 returns tampered WASM
-      svc._redisOverride.get = jest.fn().mockResolvedValue(JSON.stringify(entry));
+      svc._redisOverride.get = jest
+        .fn()
+        .mockResolvedValue(JSON.stringify(entry));
       mockSend.mockResolvedValueOnce({ Body: bufferToReadable(tamperedWasm) });
 
       const result = await svc.lookup(hash);
@@ -628,7 +677,9 @@ describe('CompilationCacheService', () => {
 
   describe('Redis unavailable fallback', () => {
     it('still serves LRU hits when Redis set throws', async () => {
-      svc._redisOverride.set = jest.fn().mockRejectedValue(new Error('Redis timeout'));
+      svc._redisOverride.set = jest
+        .fn()
+        .mockRejectedValue(new Error('Redis timeout'));
 
       const hash = computeCacheKey(makeInputs({ rustVersion: 'nightly' }));
       const wasm = makeWasm('nightly wasm');
@@ -640,7 +691,9 @@ describe('CompilationCacheService', () => {
     });
 
     it('returns a miss gracefully when Redis throws on lookup', async () => {
-      svc._redisOverride.get = jest.fn().mockRejectedValue(new Error('Redis timeout'));
+      svc._redisOverride.get = jest
+        .fn()
+        .mockRejectedValue(new Error('Redis timeout'));
       const result = await svc.lookup('no-such-hash');
       expect(result.hit).toBe(false);
     });

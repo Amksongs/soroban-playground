@@ -20,8 +20,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    bytes, bytesn, contract, contracterror, contractimpl, contracttype, crypto::Hash,
-    symbol_short, token, Address, Bytes, BytesN, Env, Vec,
+    bytes, bytesn, contract, contracterror, contractimpl, contracttype, crypto::Hash, symbol_short,
+    token, Address, Bytes, BytesN, Env, Vec,
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -32,9 +32,9 @@ const TICKET_PRICE: i128 = 10_000_000; // 1 unit
 const MIN_QUORUM: u32 = 3;
 /// Basis points for prize split.
 const BPS: i128 = 10_000;
-const WINNER_BPS: i128 = 9_000;   // 90 %
-const RUNNER_BPS: i128 = 500;     // 5 %
-const TREASURY_BPS: i128 = 500;   // 5 %
+const WINNER_BPS: i128 = 9_000; // 90 %
+const RUNNER_BPS: i128 = 500; // 5 %
+const TREASURY_BPS: i128 = 500; // 5 %
 /// Minimum number of ledgers a round stays open for ticket purchases.
 const MIN_ROUND_LEDGERS: u32 = 20;
 
@@ -69,11 +69,11 @@ pub enum Error {
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum RoundStatus {
-    Open,       // Accepting ticket purchases
-    Committed,  // VRF operator committed a hash, still accepting tickets until end_ledger
-    Ended,      // end_ledger passed, awaiting reveal
-    Revealed,   // Seed revealed, winners determined
-    Rolled,     // Quorum not met – prize rolled to next round
+    Open,      // Accepting ticket purchases
+    Committed, // VRF operator committed a hash, still accepting tickets until end_ledger
+    Ended,     // end_ledger passed, awaiting reveal
+    Revealed,  // Seed revealed, winners determined
+    Rolled,    // Quorum not met – prize rolled to next round
 }
 
 #[contracttype]
@@ -91,7 +91,7 @@ pub struct Round {
     pub seed: BytesN<32>,
     pub winner_index: u32,
     pub runner_up_index: u32,
-    pub rolled_over: i128,  // amount rolled in from previous round
+    pub rolled_over: i128, // amount rolled in from previous round
 }
 
 #[contracttype]
@@ -170,11 +170,7 @@ impl VrfLottery {
     // ── Round Management ──────────────────────────────────────────────────────
 
     /// Start a new lottery round.  `duration_ledgers` must be >= MIN_ROUND_LEDGERS.
-    pub fn start_round(
-        env: Env,
-        admin: Address,
-        duration_ledgers: u32,
-    ) -> Result<u32, Error> {
+    pub fn start_round(env: Env, admin: Address, duration_ledgers: u32) -> Result<u32, Error> {
         let mut state = Self::load_state(&env)?;
         Self::require_admin(&state, &admin);
         admin.require_auth();
@@ -236,19 +232,17 @@ impl VrfLottery {
             .set(&DataKey::Round(new_id), &round);
         env.storage().instance().set(&DataKey::State, &state);
 
-        env.events()
-            .publish((symbol_short!("rnd_start"),), (new_id, start, start + duration_ledgers));
+        env.events().publish(
+            (symbol_short!("rnd_start"),),
+            (new_id, start, start + duration_ledgers),
+        );
         Ok(new_id)
     }
 
     // ── Ticket Purchases ──────────────────────────────────────────────────────
 
     /// Purchase `count` tickets in the current open round.
-    pub fn buy_tickets(
-        env: Env,
-        buyer: Address,
-        count: u32,
-    ) -> Result<Vec<u32>, Error> {
+    pub fn buy_tickets(env: Env, buyer: Address, count: u32) -> Result<Vec<u32>, Error> {
         let state = Self::load_state(&env)?;
         Self::assert_not_paused(&state)?;
         buyer.require_auth();
@@ -298,8 +292,10 @@ impl VrfLottery {
             .instance()
             .set(&DataKey::Round(round_id), &round);
 
-        env.events()
-            .publish((symbol_short!("tickets"),), (buyer, round_id, count, start_index));
+        env.events().publish(
+            (symbol_short!("tickets"),),
+            (buyer, round_id, count, start_index),
+        );
         Ok(indices)
     }
 
@@ -389,15 +385,27 @@ impl VrfLottery {
         // Derive winner indices from seed bytes
         let seed_arr = seed.to_array();
         let random_u64 = u64::from_be_bytes([
-            seed_arr[0], seed_arr[1], seed_arr[2], seed_arr[3],
-            seed_arr[4], seed_arr[5], seed_arr[6], seed_arr[7],
+            seed_arr[0],
+            seed_arr[1],
+            seed_arr[2],
+            seed_arr[3],
+            seed_arr[4],
+            seed_arr[5],
+            seed_arr[6],
+            seed_arr[7],
         ]);
         let total = round.ticket_count as u64;
         let winner_index = (random_u64 % total) as u32;
-        let secondary = random_u64.wrapping_div(total).wrapping_add(random_u64 >> 32);
+        let secondary = random_u64
+            .wrapping_div(total)
+            .wrapping_add(random_u64 >> 32);
         let runner_up_index = if total > 1 {
             let r = (secondary % (total - 1)) as u32;
-            if r >= winner_index { r + 1 } else { r }
+            if r >= winner_index {
+                r + 1
+            } else {
+                r
+            }
         } else {
             winner_index
         };
@@ -490,8 +498,10 @@ impl VrfLottery {
             );
         }
 
-        env.events()
-            .publish((symbol_short!("claimed"),), (claimant, round_id, ticket_index, payout));
+        env.events().publish(
+            (symbol_short!("claimed"),),
+            (claimant, round_id, ticket_index, payout),
+        );
         Ok(payout)
     }
 

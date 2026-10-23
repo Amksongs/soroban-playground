@@ -106,7 +106,9 @@ describe('[BE-10] Trace Header Propagation — Issue #1758', () => {
       const app = buildApp();
       const res = await request(app).get('/health');
       // The mock returns a fixed trace ID
-      expect(res.headers['x-trace-id']).toBe('aabbccddeeff00112233445566778899');
+      expect(res.headers['x-trace-id']).toBe(
+        'aabbccddeeff00112233445566778899'
+      );
     });
 
     it('handles multiple concurrent requests independently', async () => {
@@ -137,7 +139,7 @@ describe('[BE-10] Trace Header Propagation — Issue #1758', () => {
         .get('/health')
         .set(
           'traceparent',
-          '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+          '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
         )
         .set('tracestate', 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE');
       expect(res.status).toBe(200);
@@ -248,36 +250,42 @@ describe('[BE-10] Prometheus Metrics — Issue #1758', () => {
   it('exports active_compilation_jobs gauge (backwards-compat alias)', () => {
     expect(metricsModule.activeCompilationJobs).toBeDefined();
     expect(metricsModule.activeCompilationJobs.name).toBe(
-      'active_compilation_jobs',
+      'active_compilation_jobs'
     );
   });
 
   it('exports rpc_latency_milliseconds histogram', () => {
     expect(metricsModule.rpcLatencyMilliseconds).toBeDefined();
     expect(metricsModule.rpcLatencyMilliseconds.name).toBe(
-      'rpc_latency_milliseconds',
+      'rpc_latency_milliseconds'
     );
   });
 
   it('rpc_latency_milliseconds has endpoint and status label names', () => {
     const metric = metricsModule.rpcLatencyMilliseconds;
     expect(metric.sortedLabelNames ?? metric.labelNames).toEqual(
-      expect.arrayContaining(['endpoint', 'status']),
+      expect.arrayContaining(['endpoint', 'status'])
     );
   });
 
   it('rpc_latency_milliseconds has appropriate ms-scale buckets', () => {
     // Observe values across the bucket range to confirm the histogram accepts them
     expect(() => {
-      metricsModule.rpcLatencyMilliseconds.observe({ endpoint: '/test', status: 200 }, 50);
-      metricsModule.rpcLatencyMilliseconds.observe({ endpoint: '/test', status: 500 }, 2500);
+      metricsModule.rpcLatencyMilliseconds.observe(
+        { endpoint: '/test', status: 200 },
+        50
+      );
+      metricsModule.rpcLatencyMilliseconds.observe(
+        { endpoint: '/test', status: 500 },
+        2500
+      );
     }).not.toThrow();
   });
 
   it('http_request_duration_seconds histogram is still exported (no regressions)', () => {
     expect(metricsModule.requestLatency).toBeDefined();
     expect(metricsModule.requestLatency.name).toBe(
-      'http_request_duration_seconds',
+      'http_request_duration_seconds'
     );
   });
 

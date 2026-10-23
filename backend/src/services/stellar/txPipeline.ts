@@ -117,8 +117,7 @@ export class StellarTransactionPipeline {
       new Horizon.Server(
         options.horizonUrl ?? 'https://horizon-testnet.stellar.org'
       );
-    this.networkPassphrase =
-      options.networkPassphrase ?? Networks.TESTNET;
+    this.networkPassphrase = options.networkPassphrase ?? Networks.TESTNET;
     this.pollIntervalMs = options.pollIntervalMs ?? 1000;
     this.maxPollIntervalMs = options.maxPollIntervalMs ?? 15000;
     this.submissionTimeoutMs = options.submissionTimeoutMs ?? 120000;
@@ -188,7 +187,9 @@ export class StellarTransactionPipeline {
         try {
           for (let attempt = 0; attempt <= this.maxSequenceRetries; attempt++) {
             if (!transaction || attempt > 0) {
-              const sequence = await this.allocateSequence(options.sourceAccount);
+              const sequence = await this.allocateSequence(
+                options.sourceAccount
+              );
               transaction = await options.buildTransaction(sequence);
               workingRecord = {
                 fingerprint: options.requestFingerprint,
@@ -200,7 +201,8 @@ export class StellarTransactionPipeline {
             }
 
             try {
-              submittedResult = await this.horizon.submitTransaction(transaction);
+              submittedResult =
+                await this.horizon.submitTransaction(transaction);
               submittedHash =
                 (submittedResult as { hash?: string }).hash ??
                 transaction.hash().toString('hex');
@@ -223,7 +225,10 @@ export class StellarTransactionPipeline {
                 await this.writeRecord(idempotencyKey, workingRecord);
                 break;
               }
-              if (this.isBadSequence(error) && attempt < this.maxSequenceRetries) {
+              if (
+                this.isBadSequence(error) &&
+                attempt < this.maxSequenceRetries
+              ) {
                 await this.resyncSequence(options.sourceAccount);
                 transaction = undefined;
                 continue;
@@ -356,20 +361,23 @@ export class StellarTransactionPipeline {
   }
 
   private renewLock(key: string, token: string): () => void {
-    const timer = setInterval(() => {
-      void this.redis
-        .eval(RENEW_LOCK_LUA, 1, key, token, this.lockTtlSeconds)
-        .then((renewed) => {
-          if (Number(renewed) !== 1) {
-            this.logger.error(`Lost Stellar transaction lock ${key}.`);
-          }
-        })
-        .catch((error: unknown) => {
-          this.logger.error(
-            `Failed to renew Stellar transaction lock ${key}: ${this.errorMessage(error)}`
-          );
-        });
-    }, Math.max(1000, Math.floor((this.lockTtlSeconds * 1000) / 3)));
+    const timer = setInterval(
+      () => {
+        void this.redis
+          .eval(RENEW_LOCK_LUA, 1, key, token, this.lockTtlSeconds)
+          .then((renewed) => {
+            if (Number(renewed) !== 1) {
+              this.logger.error(`Lost Stellar transaction lock ${key}.`);
+            }
+          })
+          .catch((error: unknown) => {
+            this.logger.error(
+              `Failed to renew Stellar transaction lock ${key}: ${this.errorMessage(error)}`
+            );
+          });
+      },
+      Math.max(1000, Math.floor((this.lockTtlSeconds * 1000) / 3))
+    );
     timer.unref?.();
     return () => clearInterval(timer);
   }
@@ -522,7 +530,12 @@ export class StellarTransactionPipeline {
       transaction: status.transaction,
       ...(feeBumped ? { feeBumped: true } : {}),
     };
-    await this.writeRecord(key, { ...record, status: 'completed', hash, result });
+    await this.writeRecord(key, {
+      ...record,
+      status: 'completed',
+      hash,
+      result,
+    });
     return result;
   }
 
@@ -552,9 +565,7 @@ export class StellarTransactionPipeline {
           );
         }
       }
-      await this.wait(
-        Math.min(interval, timeoutMs - (Date.now() - startedAt))
-      );
+      await this.wait(Math.min(interval, timeoutMs - (Date.now() - startedAt)));
       interval = Math.min(interval * 2, this.maxPollIntervalMs);
     }
 
@@ -573,7 +584,10 @@ export class StellarTransactionPipeline {
 
   private classifyError(error: unknown): StellarSubmissionError {
     const details = error as {
-      response?: { data?: { extras?: { result_codes?: { transaction?: string } } }; status?: number };
+      response?: {
+        data?: { extras?: { result_codes?: { transaction?: string } } };
+        status?: number;
+      };
       message?: string;
     };
     const rawCode = details?.response?.data?.extras?.result_codes?.transaction;
@@ -585,7 +599,9 @@ export class StellarTransactionPipeline {
       code = 'txINSUFFICIENT_BALANCE';
     } else if (/bad_seq|seq_no_too_low|sequence/.test(searchable)) {
       code = 'txBAD_SEQ';
-    } else if (/timeout|timed out|econnreset|network|fetch failed/.test(searchable)) {
+    } else if (
+      /timeout|timed out|econnreset|network|fetch failed/.test(searchable)
+    ) {
       code = 'txNETWORK_ERROR';
     }
 
@@ -603,7 +619,10 @@ export class StellarTransactionPipeline {
   }
 
   private isNotFound(error: unknown): boolean {
-    const candidate = error as { response?: { status?: number }; status?: number };
+    const candidate = error as {
+      response?: { status?: number };
+      status?: number;
+    };
     return (
       candidate?.response?.status === 404 ||
       candidate?.status === 404 ||

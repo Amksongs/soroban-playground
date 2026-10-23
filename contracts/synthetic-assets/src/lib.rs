@@ -105,8 +105,8 @@ pub struct StakerPosition {
 pub struct State {
     pub admin: Address,
     pub collateral_token: Address,
-    pub debt_index: i128,  // fixed-point, 1e18 = 1.0
-    pub total_debt: i128,  // sum of all staker synthetic amounts (in USD value, 7 dp)
+    pub debt_index: i128, // fixed-point, 1e18 = 1.0
+    pub total_debt: i128, // sum of all staker synthetic amounts (in USD value, 7 dp)
     pub paused: bool,
 }
 
@@ -115,11 +115,11 @@ pub struct State {
 #[contracttype]
 pub enum DataKey {
     State,
-    Asset(String),          // AssetConfig keyed by symbol
-    AssetList,              // Vec<String> of registered symbols
-    Position(Address),      // StakerPosition keyed by staker
-    Price(String),          // i128 USD price (7 dp) keyed by symbol
-    OracleFor(String),      // Address of oracle for symbol
+    Asset(String),     // AssetConfig keyed by symbol
+    AssetList,         // Vec<String> of registered symbols
+    Position(Address), // StakerPosition keyed by staker
+    Price(String),     // i128 USD price (7 dp) keyed by symbol
+    OracleFor(String), // Address of oracle for symbol
 }
 
 // ─── Contract ─────────────────────────────────────────────────────────────────
@@ -132,11 +132,7 @@ impl SyntheticAssets {
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     /// Initialize the contract.  Must be called once before any other function.
-    pub fn initialize(
-        env: Env,
-        admin: Address,
-        collateral_token: Address,
-    ) -> Result<(), Error> {
+    pub fn initialize(env: Env, admin: Address, collateral_token: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::State) {
             return Err(Error::AlreadyInitialized);
         }
@@ -154,8 +150,7 @@ impl SyntheticAssets {
             .instance()
             .set(&DataKey::AssetList, &Vec::<String>::new(&env));
 
-        env.events()
-            .publish((symbol_short!("init"),), ());
+        env.events().publish((symbol_short!("init"),), ());
         Ok(())
     }
 
@@ -332,7 +327,13 @@ impl SyntheticAssets {
 
         env.events().publish(
             (symbol_short!("minted"),),
-            (staker, synth_symbol, collateral_amount, synth_amount, debt_share),
+            (
+                staker,
+                synth_symbol,
+                collateral_amount,
+                synth_amount,
+                debt_share,
+            ),
         );
         Ok(())
     }
@@ -448,9 +449,7 @@ impl SyntheticAssets {
             .ok_or(Error::PositionNotFound)?;
 
         let current_ledger = env.ledger().sequence();
-        if pos.last_swap_ledger > 0
-            && current_ledger < pos.last_swap_ledger + FEE_DELAY_LEDGERS
-        {
+        if pos.last_swap_ledger > 0 && current_ledger < pos.last_swap_ledger + FEE_DELAY_LEDGERS {
             return Err(Error::TradeDelayActive);
         }
 
@@ -465,10 +464,7 @@ impl SyntheticAssets {
         // USD value of from_amount (7 dp)
         let usd_value = Self::mul_price(from_amount, from_price);
         // Equivalent to_amount (zero-slippage, same USD value)
-        let to_amount = usd_value
-            .checked_mul(10_000_000)
-            .unwrap_or(i128::MAX)
-            / to_price;
+        let to_amount = usd_value.checked_mul(10_000_000).unwrap_or(i128::MAX) / to_price;
 
         // Burn from_symbol from staker's position
         let mut pos_mut = pos.clone();
@@ -559,9 +555,7 @@ impl SyntheticAssets {
         let cr_bps = if synth_usd == 0 {
             u64::MAX
         } else {
-            (pos.collateral as u64)
-                .saturating_mul(BPS)
-                / (synth_usd as u64)
+            (pos.collateral as u64).saturating_mul(BPS) / (synth_usd as u64)
         };
 
         if cr_bps >= MIN_CR_BPS {
@@ -598,10 +592,7 @@ impl SyntheticAssets {
         }
 
         // Update global debt
-        state.total_debt = state
-            .total_debt
-            .saturating_sub(repay_usd)
-            .max(0);
+        state.total_debt = state.total_debt.saturating_sub(repay_usd).max(0);
         env.storage().instance().set(&DataKey::State, &state);
 
         // Update asset supply
@@ -613,11 +604,7 @@ impl SyntheticAssets {
 
         // Transfer seized collateral to liquidator
         let col_client = token::Client::new(&env, &state.collateral_token);
-        col_client.transfer(
-            &env.current_contract_address(),
-            &liquidator,
-            &seized,
-        );
+        col_client.transfer(&env.current_contract_address(), &liquidator, &seized);
 
         env.events().publish(
             (symbol_short!("liquidate"),),
@@ -641,9 +628,7 @@ impl SyntheticAssets {
         if synth_usd == 0 {
             return Ok(u64::MAX);
         }
-        Ok((pos.collateral as u64)
-            .saturating_mul(BPS)
-            / (synth_usd as u64))
+        Ok((pos.collateral as u64).saturating_mul(BPS) / (synth_usd as u64))
     }
 
     /// Returns the full staker position.
@@ -716,10 +701,7 @@ impl SyntheticAssets {
     /// Multiply an asset amount by its 7-dp USD price to get USD value.
     /// Both are 7 decimal-place integers; result is also 7 dp.
     fn mul_price(amount: i128, price_7dp: i128) -> i128 {
-        amount
-            .checked_mul(price_7dp)
-            .unwrap_or(i128::MAX)
-            / 10_000_000
+        amount.checked_mul(price_7dp).unwrap_or(i128::MAX) / 10_000_000
     }
 }
 
@@ -763,11 +745,7 @@ mod test {
         let client = SyntheticAssetsClient::new(&env, &contract_id);
 
         let oracle = Address::generate(&env);
-        client.register_asset(
-            &admin,
-            &String::from_str(&env, "sXLM"),
-            &oracle,
-        );
+        client.register_asset(&admin, &String::from_str(&env, "sXLM"), &oracle);
 
         let assets = client.list_assets();
         assert_eq!(assets.len(), 1);
@@ -779,11 +757,7 @@ mod test {
         let client = SyntheticAssetsClient::new(&env, &contract_id);
 
         let oracle = Address::generate(&env);
-        client.register_asset(
-            &admin,
-            &String::from_str(&env, "sXLM"),
-            &oracle,
-        );
+        client.register_asset(&admin, &String::from_str(&env, "sXLM"), &oracle);
         // price: $0.10 with 7 dp = 1_000_000
         client.update_price(&oracle, &String::from_str(&env, "sXLM"), &1_000_000);
         let price = client.get_price(&String::from_str(&env, "sXLM"));
@@ -796,11 +770,7 @@ mod test {
         let client = SyntheticAssetsClient::new(&env, &contract_id);
 
         let oracle = Address::generate(&env);
-        client.register_asset(
-            &admin,
-            &String::from_str(&env, "sXLM"),
-            &oracle,
-        );
+        client.register_asset(&admin, &String::from_str(&env, "sXLM"), &oracle);
         // price: $1.00 with 7 dp = 10_000_000
         client.update_price(&oracle, &String::from_str(&env, "sXLM"), &10_000_000);
 

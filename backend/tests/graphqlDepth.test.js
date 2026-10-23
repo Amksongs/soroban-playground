@@ -36,7 +36,9 @@ describe('computeDepth', () => {
   });
 
   it('does not add a level for inline fragments', () => {
-    expect(depthOf('{ projects { ... on Project { files { name } } } }')).toBe(3);
+    expect(depthOf('{ projects { ... on Project { files { name } } } }')).toBe(
+      3
+    );
   });
 
   it('terminates on fragment cycles', () => {
@@ -49,7 +51,8 @@ describe('computeDepth', () => {
   });
 
   it('ignores introspection fields', () => {
-    const query = '{ __schema { types { fields { type { ofType { ofType { name } } } } } } }';
+    const query =
+      '{ __schema { types { fields { type { ofType { ofType { name } } } } } } }';
     expect(depthOf(query)).toBe(0);
   });
 

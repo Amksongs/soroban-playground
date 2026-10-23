@@ -5,9 +5,9 @@ import { Router } from 'express';
 import {
   runBackup,
   getLastBackupResult,
-  runWalGBaseBackup,
-  getWalGStatus,
-  restoreToTimestamp,
+  runPostgresBaseBackup as runWalGBaseBackup,
+  checkWalArchiveLag as getWalGStatus,
+  runPostgresPitr,
   runRestoreDrill,
 } from '../services/backupService.js';
 
@@ -85,7 +85,7 @@ router.post('/walg/restore', async (req, res) => {
     });
   }
   try {
-    const result = await restoreToTimestamp(targetTime, targetName);
+    const result = await runPostgresPitr({ targetTime, targetDir: targetName });
     return res.status(200).json({ success: true, data: result });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

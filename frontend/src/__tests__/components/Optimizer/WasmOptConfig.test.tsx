@@ -13,7 +13,13 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import WasmOptConfig from "@/components/Optimizer/WasmOptConfig";
 
 // ── Mock the Web Worker ────────────────────────────────────────────────────────
@@ -65,8 +71,14 @@ beforeEach(() => {
  * WebAssembly.validate() accepts this as a valid empty module.
  */
 const MINIMAL_WASM = new Uint8Array([
-  0x00, 0x61, 0x73, 0x6d, // magic: \0asm
-  0x01, 0x00, 0x00, 0x00, // version: 1
+  0x00,
+  0x61,
+  0x73,
+  0x6d, // magic: \0asm
+  0x01,
+  0x00,
+  0x00,
+  0x00, // version: 1
 ]);
 
 /**
@@ -120,27 +132,57 @@ function buildTestWasmWithSections(): Uint8Array {
 
   // contractspecv0 custom section with dummy content "init"
   const specSection = buildCustomSection("contractspecv0", [
-    0x00, 0x00, 0x00, 0x04, // XDR length = 4
-    0x69, 0x6e, 0x69, 0x74, // "init"
+    0x00,
+    0x00,
+    0x00,
+    0x04, // XDR length = 4
+    0x69,
+    0x6e,
+    0x69,
+    0x74, // "init"
   ]);
 
   // name section (debug symbols — strippable)
   const nameSection = buildCustomSection("name", [
-    0x01, 0x04, // name subsection, 4 bytes
-    0x01, 0x00, 0x02, 0x66, 0x6e, // func 0 named "fn"
+    0x01,
+    0x04, // name subsection, 4 bytes
+    0x01,
+    0x00,
+    0x02,
+    0x66,
+    0x6e, // func 0 named "fn"
   ]);
 
   // producers section (build metadata — strippable)
   const producersSection = buildCustomSection("producers", [
-    0x01,                   // 1 field
-    0x08, 0x6c, 0x61, 0x6e, 0x67, 0x75, 0x61, 0x67, 0x65, // "language"
-    0x01,                   // 1 version
-    0x04, 0x52, 0x75, 0x73, 0x74, // "Rust"
-    0x00,                   // no version string
+    0x01, // 1 field
+    0x08,
+    0x6c,
+    0x61,
+    0x6e,
+    0x67,
+    0x75,
+    0x61,
+    0x67,
+    0x65, // "language"
+    0x01, // 1 version
+    0x04,
+    0x52,
+    0x75,
+    0x73,
+    0x74, // "Rust"
+    0x00, // no version string
   ]);
 
   const body = new Uint8Array([
-    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // header
+    0x00,
+    0x61,
+    0x73,
+    0x6d,
+    0x01,
+    0x00,
+    0x00,
+    0x00, // header
     ...typeSectionCorrect,
     ...specSection,
     ...nameSection,
@@ -158,7 +200,11 @@ describe("WasmOptConfig", () => {
     it("renders the drop zone when no binary is provided", () => {
       render(<WasmOptConfig />);
       expect(
-        screen.getByText(/Drop your .wasm binary here/i),
+        screen.getByText(
+          (_text, element) =>
+            element?.tagName === "P" &&
+            /Drop your \.wasm binary here/i.test(element.textContent ?? ""),
+        ),
       ).toBeInTheDocument();
     });
 
@@ -220,10 +266,14 @@ describe("WasmOptConfig", () => {
 
       expect(screen.getByLabelText(/Strip Debug Names/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Strip Producers/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Strip Unknown Custom Sections/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/Strip Unknown Custom Sections/i),
+      ).toBeInTheDocument();
       expect(screen.getByLabelText(/Merge Data Segments/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Inlining/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Dead-Code Elimination/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/Dead-Code Elimination/i),
+      ).toBeInTheDocument();
       expect(screen.getByLabelText(/Const Merging/i)).toBeInTheDocument();
     });
 
@@ -236,7 +286,9 @@ describe("WasmOptConfig", () => {
 
     it("toggling a pass changes its checked state", () => {
       render(<WasmOptConfig initialBytes={MINIMAL_WASM} />);
-      const toggle = screen.getByLabelText(/Strip Debug Names/i) as HTMLInputElement;
+      const toggle = screen.getByLabelText(
+        /Strip Debug Names/i,
+      ) as HTMLInputElement;
       expect(toggle.checked).toBe(true);
 
       fireEvent.click(toggle);
@@ -289,9 +341,7 @@ describe("WasmOptConfig", () => {
         });
       });
 
-      expect(
-        screen.getByText(/Optimisation failed/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Optimisation failed/i)).toBeInTheDocument();
       expect(
         screen.getByText(/Soroban section contractspecv0 would be removed/i),
       ).toBeInTheDocument();
@@ -328,7 +378,9 @@ describe("WasmOptConfig", () => {
 
       expect(screen.getByText(/Pass Results/i)).toBeInTheDocument();
       expect(screen.getByText(/Strip Debug Names/i)).toBeInTheDocument();
-      expect(screen.getByText(/Download Optimised Binary/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Download Optimised Binary/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -478,7 +530,13 @@ describe("WasmOptConfig", () => {
       // Must have non-Soroban custom sections
       const nonSoroban = meta.customSections.filter(
         (s: { name: string }) =>
-          !["contractspecv0", "contractenvmetav0", "contractmeta", "symboltable", "contractinfo"].includes(s.name),
+          ![
+            "contractspecv0",
+            "contractenvmetav0",
+            "contractmeta",
+            "symboltable",
+            "contractinfo",
+          ].includes(s.name),
       );
       expect(nonSoroban.length).toBeGreaterThan(0);
     });
@@ -514,10 +572,7 @@ describe("WasmOptConfig", () => {
 
     it("spec integrity badge shows preserved when identifiers returned by worker", async () => {
       render(
-        <WasmOptConfig
-          initialBytes={MINIMAL_WASM}
-          filename="soroban.wasm"
-        />,
+        <WasmOptConfig initialBytes={MINIMAL_WASM} filename="soroban.wasm" />,
       );
 
       fireEvent.click(
@@ -577,7 +632,11 @@ describe("WasmOptConfig", () => {
       fireEvent.click(resetBtn);
 
       expect(
-        screen.getByText(/Drop your .wasm binary here/i),
+        screen.getByText(
+          (_text, element) =>
+            element?.tagName === "P" &&
+            /Drop your \.wasm binary here/i.test(element.textContent ?? ""),
+        ),
       ).toBeInTheDocument();
     });
   });

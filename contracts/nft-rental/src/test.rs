@@ -4,17 +4,9 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _, testutils::Ledger as _, Env,
-};
+use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, Env};
 
-fn setup() -> (
-    Env,
-    NFTRentalClient<'static>,
-    Address,
-    Address,
-    Address,
-) {
+fn setup() -> (Env, NFTRentalClient<'static>, Address, Address, Address) {
     let env = Env::default();
     env.mock_all_auths();
     let contract_id = env.register_contract(None, NFTRental);
@@ -64,7 +56,12 @@ fn test_renter_cannot_transfer_or_sublease() {
 
     // Renter attempts to sub-lease or delegate user role to someone else -> must fail
     assert!(client
-        .try_set_user(&renter, &token_id, &malicious_third_party, &(expire_ledger + 50))
+        .try_set_user(
+            &renter,
+            &token_id,
+            &malicious_third_party,
+            &(expire_ledger + 50)
+        )
         .is_err());
 
     // Legal owner is still intact

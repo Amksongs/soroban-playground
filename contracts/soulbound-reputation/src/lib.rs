@@ -104,7 +104,9 @@ impl SoulboundReputation {
             panic!("not admin");
         }
         admin.require_auth();
-        env.storage().persistent().set(&DataKey::Issuer(issuer), &authorised);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Issuer(issuer), &authorised);
     }
 
     /// Returns `true` if the address is an authorised issuer.
@@ -138,7 +140,11 @@ impl SoulboundReputation {
             panic!("not an authorised issuer");
         }
 
-        let id: u64 = env.storage().instance().get(&DataKey::TokenCount).unwrap_or(0);
+        let id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TokenCount)
+            .unwrap_or(0);
         let token = SBTData {
             issuer: issuer.clone(),
             holder: holder.clone(),
@@ -148,15 +154,22 @@ impl SoulboundReputation {
             active: true,
         };
         env.storage().persistent().set(&DataKey::Token(id), &token);
-        env.storage().instance().set(&DataKey::TokenCount, &(id + 1));
+        env.storage()
+            .instance()
+            .set(&DataKey::TokenCount, &(id + 1));
 
         // Update holder's token list
         let list_key = DataKey::HolderTokens(holder.clone());
-        let mut list: Vec<u64> = env.storage().persistent().get(&list_key).unwrap_or(vec![&env]);
+        let mut list: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&list_key)
+            .unwrap_or(vec![&env]);
         list.push_back(id);
         env.storage().persistent().set(&list_key, &list);
 
-        env.events().publish((EVT_MINT,), (id, issuer, holder, credential_type, weight));
+        env.events()
+            .publish((EVT_MINT,), (id, issuer, holder, credential_type, weight));
         id
     }
 
@@ -200,7 +213,9 @@ impl SoulboundReputation {
         }
 
         token.active = false;
-        env.storage().persistent().set(&DataKey::Token(token_id), &token);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_id), &token);
         env.events().publish((EVT_REVOKE,), (token_id, issuer));
     }
 
@@ -226,7 +241,9 @@ impl SoulboundReputation {
         }
 
         token.active = false;
-        env.storage().persistent().set(&DataKey::Token(token_id), &token);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Token(token_id), &token);
         env.events().publish((EVT_BURN,), (token_id, holder));
     }
 
@@ -278,7 +295,10 @@ impl SoulboundReputation {
 
     /// Total tokens ever minted.
     pub fn total_supply(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::TokenCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TokenCount)
+            .unwrap_or(0)
     }
 }
 

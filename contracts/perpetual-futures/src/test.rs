@@ -151,7 +151,8 @@ fn test_continuous_funding_payment_transfer() {
     assert_eq!(oi.short_oi, SIZE);
 
     // Advance ledger timestamp by 8 hours
-    env.ledger().set_timestamp(env.ledger().timestamp() + EIGHT_HOURS_SECONDS);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + EIGHT_HOURS_SECONDS);
 
     // Positive funding rate (longs pay shorts) at +100 bps
     let mark = INITIAL_PRICE + 1_000_000;

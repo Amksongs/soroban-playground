@@ -4,9 +4,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{
-    testutils::Address as _, testutils::Ledger as _, vec, Env, Symbol,
-};
+use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, vec, Env, Symbol};
 
 fn setup() -> (
     Env,
@@ -218,14 +216,16 @@ fn test_historical_snapshots() {
     assert_eq!(snap1.index_value, 1000);
 
     // Advance 1 day (86,400s)
-    env.ledger().set_timestamp(env.ledger().timestamp() + SECONDS_PER_DAY + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + SECONDS_PER_DAY + 1);
     client.record_snapshot(&caller);
 
     let daily_snap = client.get_daily_snapshot(&1);
     assert_eq!(daily_snap.index_value, 1000);
 
     // Advance 1 week
-    env.ledger().set_timestamp(env.ledger().timestamp() + SECONDS_PER_WEEK + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + SECONDS_PER_WEEK + 1);
     client.record_snapshot(&caller);
 
     let weekly_snap = client.get_weekly_snapshot(&1);

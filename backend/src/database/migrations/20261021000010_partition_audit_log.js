@@ -35,7 +35,11 @@ END
 $fn$;`;
 
 const relkind = async (knex) =>
-  (await knex.raw(`SELECT relkind FROM pg_class WHERE oid = 'public.audit_log'::regclass`)).rows[0].relkind;
+  (
+    await knex.raw(
+      `SELECT relkind FROM pg_class WHERE oid = 'public.audit_log'::regclass`
+    )
+  ).rows[0].relkind;
 
 const handOverSequence = (from, to) => `
 DO $$ DECLARE s text; BEGIN
@@ -58,21 +62,37 @@ export async function up(knex) {
         EXECUTE format('ALTER INDEX %I RENAME TO %I', r.indexname, left(r.indexname, 50) || '_legacy');
       END LOOP;
     END $$;`);
-  await knex.raw(`UPDATE audit_log_legacy SET "timestamp" = now() WHERE "timestamp" IS NULL`);
+  await knex.raw(
+    `UPDATE audit_log_legacy SET "timestamp" = now() WHERE "timestamp" IS NULL`
+  );
 
-  await knex.raw(`CREATE TABLE audit_log (LIKE audit_log_legacy INCLUDING DEFAULTS) PARTITION BY RANGE ("timestamp")`);
-  await knex.raw(`ALTER TABLE audit_log ALTER COLUMN "timestamp" SET NOT NULL, ALTER COLUMN "timestamp" SET DEFAULT now()`);
+  await knex.raw(
+    `CREATE TABLE audit_log (LIKE audit_log_legacy INCLUDING DEFAULTS) PARTITION BY RANGE ("timestamp")`
+  );
+  await knex.raw(
+    `ALTER TABLE audit_log ALTER COLUMN "timestamp" SET NOT NULL, ALTER COLUMN "timestamp" SET DEFAULT now()`
+  );
   await knex.raw(`ALTER TABLE audit_log ADD PRIMARY KEY (id, "timestamp")`);
-  await knex.raw(`CREATE INDEX idx_audit_log_tenant_ts ON audit_log (tenant_id, "timestamp")`);
-  await knex.raw(`CREATE INDEX idx_audit_log_api_key_ts ON audit_log (api_key_id, "timestamp")`);
+  await knex.raw(
+    `CREATE INDEX idx_audit_log_tenant_ts ON audit_log (tenant_id, "timestamp")`
+  );
+  await knex.raw(
+    `CREATE INDEX idx_audit_log_api_key_ts ON audit_log (api_key_id, "timestamp")`
+  );
   await knex.raw(`CREATE INDEX idx_audit_log_ts ON audit_log ("timestamp")`);
 
   // Partitions from the oldest legacy row through 3 months ahead.
-  const { oldest } = (await knex.raw(`SELECT min("timestamp") AS oldest FROM audit_log_legacy`)).rows[0];
+  const { oldest } = (
+    await knex.raw(`SELECT min("timestamp") AS oldest FROM audit_log_legacy`)
+  ).rows[0];
   let back = 0;
   if (oldest) {
     const n = new Date();
-    back = Math.max(0, (n.getUTCFullYear() - oldest.getUTCFullYear()) * 12 + (n.getUTCMonth() - oldest.getUTCMonth()));
+    back = Math.max(
+      0,
+      (n.getUTCFullYear() - oldest.getUTCFullYear()) * 12 +
+        (n.getUTCMonth() - oldest.getUTCMonth())
+    );
   }
   await knex.raw('SELECT ensure_audit_log_partitions(?, 3)', [back]);
 
@@ -85,16 +105,26 @@ export async function down(knex) {
   if (knex.client.dialect !== 'postgresql') return;
   if (await knex.schema.hasTable('audit_log')) {
     if ((await relkind(knex)) === 'p') {
-      await knex.raw(`CREATE TABLE audit_log_flat (LIKE audit_log INCLUDING DEFAULTS)`);
+      await knex.raw(
+        `CREATE TABLE audit_log_flat (LIKE audit_log INCLUDING DEFAULTS)`
+      );
       await knex.raw(`INSERT INTO audit_log_flat SELECT * FROM audit_log`);
       await knex.raw(handOverSequence('audit_log', 'audit_log_flat'));
       await knex.raw(`DROP TABLE audit_log`);
       await knex.raw(`ALTER TABLE audit_log_flat RENAME TO audit_log`);
       await knex.raw(`ALTER TABLE audit_log ADD PRIMARY KEY (id)`);
-      await knex.raw(`CREATE INDEX idx_audit_log_tenant_ts ON audit_log (tenant_id, "timestamp")`);
-      await knex.raw(`CREATE INDEX idx_audit_log_api_key_ts ON audit_log (api_key_id, "timestamp")`);
-      await knex.raw(`CREATE INDEX idx_audit_log_ts ON audit_log ("timestamp")`);
+      await knex.raw(
+        `CREATE INDEX idx_audit_log_tenant_ts ON audit_log (tenant_id, "timestamp")`
+      );
+      await knex.raw(
+        `CREATE INDEX idx_audit_log_api_key_ts ON audit_log (api_key_id, "timestamp")`
+      );
+      await knex.raw(
+        `CREATE INDEX idx_audit_log_ts ON audit_log ("timestamp")`
+      );
     }
   }
-  await knex.raw(`DROP FUNCTION IF EXISTS ensure_audit_log_partitions(int, int)`);
+  await knex.raw(
+    `DROP FUNCTION IF EXISTS ensure_audit_log_partitions(int, int)`
+  );
 }

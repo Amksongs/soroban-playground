@@ -1,6 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { editor as Monaco } from 'monaco-editor';
-import type { Doc as YDoc } from 'yyjs';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { editor as Monaco } from "monaco-editor";
+import type { Doc as YDoc } from "yjs";
 import {
   AnnotationThread,
   addReply,
@@ -10,11 +16,14 @@ import {
   reanchorThreads,
   reopenThread,
   resolveThread,
-} from '../../lib/annotations/yjsAnnotations';
-import { createGlyphManager, GlyphManager } from '../../lib/annotations/monacoGlyphs';
-import { diffLineEdits } from '../../lib/annotations/lineTracking';
-import { MarkdownComment } from './MarkdownComment';
-import { AnnotationArchiveDrawer } from './AnnotationArchiveDrawer';
+} from "../../lib/annotations/yjsAnnotations";
+import {
+  createGlyphManager,
+  GlyphManager,
+} from "../../lib/annotations/monacoGlyphs";
+import { diffLineEdits } from "../../lib/annotations/lineTracking";
+import { MarkdownComment } from "./MarkdownComment";
+import { AnnotationArchiveDrawer } from "./AnnotationArchiveDrawer";
 
 export interface CurrentUser {
   id: string;
@@ -40,11 +49,11 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
   const [threads, setThreads] = useState<AnnotationThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [draftLine, setDraftLine] = useState<number | null>(null);
-  const [draftBody, setDraftBody] = useState('');
-  const [replyBody, setReplyBody] = useState('');
+  const [draftBody, setDraftBody] = useState("");
+  const [replyBody, setReplyBody] = useState("");
   const [archiveOpen, setArchiveOpen] = useState(false);
   const glyphManagerRef = useRef<GlyphManager | null>(null);
-  const previousTextRef = useRef<string>(editor?.getModel()?.getValue() ?? '');
+  const previousTextRef = useRef<string>(editor?.getModel()?.getValue() ?? "");
 
   // Sync threads out of the YJ map and re-render on remote changes.
   useEffect(() => {
@@ -77,7 +86,7 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
         onClickThread: (id) => setActiveThreadId(id),
         onAddThread: (line) => {
           setDraftLine(line);
-          setDraftBody('');
+          setDraftBody("");
         },
       });
     }
@@ -97,7 +106,7 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
   );
 
   const handleSubmitDraft = useCallback(() => {
-    if (draftLine === null || draftBody.trim() === '') return;
+    if (draftLine === null || draftBody.trim() === "") return;
     const id = createThread(ydoc, {
       line: draftLine,
       authorId: currentUser.id,
@@ -105,18 +114,18 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
       body: draftBody.trim(),
     });
     setDraftLine(null);
-    setDraftBody('');
+    setDraftBody("");
     setActiveThreadId(id);
   }, [ydoc, draftLine, draftBody, currentUser]);
 
   const handleSubmitReply = useCallback(() => {
-    if (!activeThread || replyBody.trim() === '') return;
+    if (!activeThread || replyBody.trim() === "") return;
     addReply(ydoc, activeThread.id, {
       authorId: currentUser.id,
       authorName: currentUser.name,
       body: replyBody.trim(),
     });
-    setReplyBody('');
+    setReplyBody("");
   }, [ydoc, activeThread, replyBody, currentUser]);
 
   const handleResolve = useCallback(() => {
@@ -125,16 +134,22 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
     setActiveThreadId(null);
   }, [ydoc, activeThread]);
 
-  const handleReopen = useCallback((id: string) => {
-    reopenThread(ydoc, id);
-    setActiveThreadId(id);
-    setArchiveOpen(false);
-  }, [ydoc]);
+  const handleReopen = useCallback(
+    (id: string) => {
+      reopenThread(ydoc, id);
+      setActiveThreadId(id);
+      setArchiveOpen(false);
+    },
+    [ydoc],
+  );
 
-  const handleDelete = useCallback((id: string) => {
-    deleteThread(ydoc, id);
-    if (activeThreadId === id) setActiveThreadId(null);
-  }, [ydoc, activeThreadId]);
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteThread(ydoc, id);
+      if (activeThreadId === id) setActiveThreadId(null);
+    },
+    [ydoc, activeThreadId],
+  );
 
   return (
     <div className="code-annotation-threads">
@@ -146,24 +161,33 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
 
       {draftLine !== null && (
         <div className="code-annotation-card code-annotation-card--draft">
-          <header>New thread on L<span>{draftLine + 1}</span></header>
+          <header>
+            New thread on L<span>{draftLine + 1}</span>
+          </header>
           <textarea
+            aria-label="New annotation comment"
             value={draftBody}
             onChange={(e) => setDraftBody(e.target.value)}
             placeholder="Leave a comment. Markdown and &mentions supported."
           />
           <div className="code-annotation-card__actions">
-            <button type="button" onClick={() => setDraftLine(null)}>Cancel</button>
-            <button type="button" onClick={handleSubmitDraft}>Comment</button>
+            <button type="button" onClick={() => setDraftLine(null)}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleSubmitDraft}>
+              Comment
+            </button>
           </div>
         </div>
       )}
 
-      {activeThread && (!activeThread.resolved) ? (
+      {activeThread && !activeThread.resolved ? (
         <div className="code-annotation-card">
           <header>
-            <strong>{ActiveThread.authorName}</strong>
-            <span>L<span>{ActiveThread.line + 1}</span></span>
+            <strong>{activeThread.authorName}</strong>
+            <span>
+              L<span>{activeThread.line + 1}</span>
+            </span>
           </header>
           <MarkdownComment content={activeThread.body} mentions={mentions} />
           <ul className="code-annotation-card__replies">
@@ -175,14 +199,21 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
             ))}
           </ul>
           <textarea
+            aria-label="Reply to annotation"
             value={replyBody}
             onChange={(e) => setReplyBody(e.target.value)}
             placeholder="Reply..."
           />
           <div className="code-annotation-card__actions">
-            <button type="button" onClick={() => setActiveThreadId(null)}>Close</button>
-            <button type="button" onClick={handleSubmitReply}>Reply</button>
-            <button type="button" onClick={handleResolve}>Resolve Thread</button>
+            <button type="button" onClick={() => setActiveThreadId(null)}>
+              Close
+            </button>
+            <button type="button" onClick={handleSubmitReply}>
+              Reply
+            </button>
+            <button type="button" onClick={handleResolve}>
+              Resolve Thread
+            </button>
           </div>
         </div>
       ) : null}
@@ -192,8 +223,12 @@ export const CodeAnnotationThread: React.FC<CodeAnnotationThreadProps> = ({
           .filter((thread) => !thread.resolved)
           .map((thread) => (
             <li key={thread.id} className="code-annotation-threads__item">
-              <button type="button" onClick={() => setActiveThreadId(thread.id)}>
-                L<span>{thread.line + 1}</span> &middot; {thread.authorName} (<span>{thread.replies.length}</span> replies)
+              <button
+                type="button"
+                onClick={() => setActiveThreadId(thread.id)}
+              >
+                L<span>{thread.line + 1}</span> &middot; {thread.authorName} (
+                <span>{thread.replies.length}</span> replies)
               </button>
             </li>
           ))}

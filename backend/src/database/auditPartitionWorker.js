@@ -8,18 +8,25 @@ import knexLib from 'knex';
  */
 export function startAuditPartitionWorker(
   knex,
-  { intervalMs = 6 * 60 * 60 * 1000, monthsAhead = 3, logger = console } = {},
+  { intervalMs = 6 * 60 * 60 * 1000, monthsAhead = 3, logger = console } = {}
 ) {
-  if (knex.client.dialect !== 'postgresql') return { stop() {}, tick: async () => 0 };
+  if (knex.client.dialect !== 'postgresql')
+    return { stop() {}, tick: async () => 0 };
 
   const tick = async () => {
     try {
-      const { rows } = await knex.raw('SELECT ensure_audit_log_partitions(0, ?) AS created', [monthsAhead]);
+      const { rows } = await knex.raw(
+        'SELECT ensure_audit_log_partitions(0, ?) AS created',
+        [monthsAhead]
+      );
       const created = rows[0].created;
-      if (created > 0) logger.info?.(`audit_log: created ${created} partition(s)`);
+      if (created > 0)
+        logger.info?.(`audit_log: created ${created} partition(s)`);
       return created;
     } catch (err) {
-      logger.warn?.(`audit_log partition worker failed (will retry): ${err.message}`);
+      logger.warn?.(
+        `audit_log partition worker failed (will retry): ${err.message}`
+      );
       return 0;
     }
   };

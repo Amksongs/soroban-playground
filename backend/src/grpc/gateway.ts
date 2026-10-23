@@ -47,10 +47,7 @@ export type DeployResponse = {
   message: string;
 };
 
-type UnaryCallback<T> = (
-  error: grpc.ServiceError | null,
-  response?: T
-) => void;
+type UnaryCallback<T> = (error: grpc.ServiceError | null, response?: T) => void;
 type UnaryCall<TRequest, TResponse> = (
   request: TRequest,
   metadata: grpc.Metadata,
@@ -116,7 +113,9 @@ const packageDefinition = protoLoader.loadSync(
   protoPath,
   createProtoLoaderOptions(__dirname)
 );
-const loadedProto = grpc.loadPackageDefinition(packageDefinition) as unknown as {
+const loadedProto = grpc.loadPackageDefinition(
+  packageDefinition
+) as unknown as {
   soroban_playground: {
     SorobanService: new (
       address: string,
@@ -125,8 +124,7 @@ const loadedProto = grpc.loadPackageDefinition(packageDefinition) as unknown as 
     ) => SorobanServiceClient;
   };
 };
-const definitions =
-  packageDefinition as unknown as ProtoPackageDefinition;
+const definitions = packageDefinition as unknown as ProtoPackageDefinition;
 
 export function createSorobanGrpcClient(
   address: string,
@@ -140,9 +138,11 @@ export function createSorobanGrpcClient(
   );
 }
 
-const httpBindings: HttpBinding[] = [...protoSource.matchAll(
-  /rpc\s+(\w+)\s*\(\s*(?:stream\s+)?(\w+)\s*\)\s*returns\s*\(\s*(?:stream\s+)?(\w+)\s*\)\s*\{([\s\S]*?)\}/g
-)]
+const httpBindings: HttpBinding[] = [
+  ...protoSource.matchAll(
+    /rpc\s+(\w+)\s*\(\s*(?:stream\s+)?(\w+)\s*\)\s*returns\s*\(\s*(?:stream\s+)?(\w+)\s*\)\s*\{([\s\S]*?)\}/g
+  ),
+]
   .map((match) => {
     const path = match[4].match(/post:\s*"([^"]+)"/)?.[1];
     if (!path) return null;
@@ -182,8 +182,7 @@ function toJsonName(fieldName: string): string {
 
 function messageSchema(name: string): Record<string, unknown> {
   const definition = definitions[`soroban_playground.${name}`] as
-    | ProtoMessage
-    | undefined;
+    ProtoMessage | undefined;
   if (!definition || !('type' in definition)) {
     throw new Error(`Missing protobuf message definition: ${name}`);
   }
@@ -220,8 +219,7 @@ function addMessageSchema(name: string, schemas: Record<string, unknown>) {
 
   schemas[name] = { type: 'object', properties: {} };
   const definition = definitions[`soroban_playground.${name}`] as
-    | ProtoMessage
-    | undefined;
+    ProtoMessage | undefined;
   if (!definition || !('type' in definition)) {
     throw new Error(`Missing protobuf message definition: ${name}`);
   }
@@ -256,7 +254,9 @@ export function buildGrpcOpenApiSpec() {
       'soroban_playground.SorobanService'
     ] as unknown as Record<string, ProtoMethod>;
     const method =
-      serviceDefinition[binding.rpcName[0].toLowerCase() + binding.rpcName.slice(1)];
+      serviceDefinition[
+        binding.rpcName[0].toLowerCase() + binding.rpcName.slice(1)
+      ];
     if (!method) {
       throw new Error(`Missing protobuf RPC definition: ${binding.rpcName}`);
     }
@@ -265,7 +265,8 @@ export function buildGrpcOpenApiSpec() {
     addMessageSchema(binding.responseType, schemas);
     paths[binding.path] = {
       post: {
-        operationId: binding.rpcName[0].toLowerCase() + binding.rpcName.slice(1),
+        operationId:
+          binding.rpcName[0].toLowerCase() + binding.rpcName.slice(1),
         summary: `${binding.rpcName} Soroban request`,
         requestBody: {
           required: true,
@@ -280,7 +281,9 @@ export function buildGrpcOpenApiSpec() {
             description: 'Successful response',
             content: {
               'application/json': {
-                schema: { $ref: `#/components/schemas/${binding.responseType}` },
+                schema: {
+                  $ref: `#/components/schemas/${binding.responseType}`,
+                },
               },
             },
           },
@@ -353,9 +356,7 @@ function normalizeRequest(rpcName: string, body: Record<string, unknown>) {
   if (rpcName === 'Simulate') {
     return {
       transaction_xdr:
-        stringValue(body.transactionXdr) ||
-        stringValue(body.transaction) ||
-        '',
+        stringValue(body.transactionXdr) || stringValue(body.transaction) || '',
       network: stringValue(body.network) || 'testnet',
     };
   }
@@ -417,16 +418,14 @@ function requestMetadata(req: express.Request): grpc.Metadata {
     (cookieToken ? ['Bearer', String(cookieToken)].join(' ') : undefined);
   if (authorization) metadata.set('authorization', authorization);
 
-  const requestId =
-    stringValue(req.headers['x-request-id']) || randomUUID();
+  const requestId = stringValue(req.headers['x-request-id']) || randomUUID();
   req.res?.setHeader('x-request-id', requestId);
   metadata.set('x-request-id', requestId);
 
   const traceHeaders: Record<string, string> = {};
   propagation.inject(context.active(), traceHeaders);
   for (const key of ['traceparent', 'tracestate']) {
-    const value =
-      traceHeaders[key] || stringValue(req.headers[key]);
+    const value = traceHeaders[key] || stringValue(req.headers[key]);
     if (value) metadata.set(key, value);
   }
   return metadata;
@@ -533,14 +532,17 @@ export function mountGrpcGateway(
     router.post(binding.path, async (req, res) => {
       const metadata = requestMetadata(req);
       const deadline = setTimeout(() => {
-        res.status(504).type('application/problem+json').json({
-          type: 'about:blank',
-          title: 'Gateway Timeout',
-          status: 504,
-          detail: 'The gRPC operation exceeded its deadline.',
-          instance: req.originalUrl,
-          requestId: metadata.get('x-request-id')[0],
-        });
+        res
+          .status(504)
+          .type('application/problem+json')
+          .json({
+            type: 'about:blank',
+            title: 'Gateway Timeout',
+            status: 504,
+            detail: 'The gRPC operation exceeded its deadline.',
+            instance: req.originalUrl,
+            requestId: metadata.get('x-request-id')[0],
+          });
       }, deadlineMs);
       deadline.unref();
 

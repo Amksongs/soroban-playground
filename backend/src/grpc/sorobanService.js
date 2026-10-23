@@ -192,8 +192,7 @@ function simulationReport(report) {
         ? ''
         : JSON.stringify(report.transactionData),
     has_transaction_data:
-      report.transactionData !== null &&
-      report.transactionData !== undefined,
+      report.transactionData !== null && report.transactionData !== undefined,
   };
 }
 
@@ -212,8 +211,7 @@ function withTracing(method, fn) {
           'rpc.system': 'grpc',
           'rpc.service': 'soroban_playground.SorobanService',
           'rpc.method': method,
-          'http.request_id':
-            metadataValue(call.metadata, 'x-request-id') || '',
+          'http.request_id': metadataValue(call.metadata, 'x-request-id') || '',
         },
       },
       parentContext,
@@ -256,8 +254,7 @@ function compileStream(call) {
         'rpc.system': 'grpc',
         'rpc.service': 'soroban_playground.SorobanService',
         'rpc.method': 'CompileStream',
-        'http.request_id':
-          metadataValue(call.metadata, 'x-request-id') || '',
+        'http.request_id': metadataValue(call.metadata, 'x-request-id') || '',
       },
     },
     parentContext
@@ -323,8 +320,7 @@ export function createSorobanServiceHandlers() {
     Compile: withTracing('Compile', compile),
     CompileStream: compileStream,
     Simulate: withTracing('Simulate', async (request) => {
-      const transactionXdr =
-        request.transaction_xdr || request.transaction;
+      const transactionXdr = request.transaction_xdr || request.transaction;
       if (typeof transactionXdr !== 'string' || !transactionXdr.trim()) {
         throw grpcError(
           grpc.status.INVALID_ARGUMENT,

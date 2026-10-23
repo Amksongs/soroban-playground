@@ -119,7 +119,7 @@ class CustomSampler {
     spanName: string,
     spanKind: SpanKind,
     attributes: Record<string, unknown>,
-    links: unknown[],
+    links: unknown[]
   ) {
     const isError =
       attributes['http.status_code'] !== undefined &&
@@ -135,7 +135,7 @@ class CustomSampler {
         spanName,
         spanKind,
         attributes as any,
-        links as any,
+        links as any
       );
     }
     return this.successSampler.shouldSample(
@@ -144,7 +144,7 @@ class CustomSampler {
       spanName,
       spanKind,
       attributes as any,
-      links as any,
+      links as any
     );
   }
 
@@ -210,8 +210,8 @@ export function initializeTelemetry(cfg: TelemetryConfig): NodeSDK | null {
             endpoint: cfg.jaegerEndpoint,
             username: process.env.JAEGER_USER,
             password: process.env.JAEGER_PASSWORD,
-          }),
-        ),
+          })
+        )
       );
     } catch (err: any) {
       // eslint-disable-next-line no-console
@@ -225,9 +225,7 @@ export function initializeTelemetry(cfg: TelemetryConfig): NodeSDK | null {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { ZipkinExporter } = require('@opentelemetry/exporter-zipkin');
       spanProcessors.push(
-        new BatchSpanProcessor(
-          new ZipkinExporter({ url: cfg.zipkinEndpoint }),
-        ),
+        new BatchSpanProcessor(new ZipkinExporter({ url: cfg.zipkinEndpoint }))
       );
     } catch (err: any) {
       // eslint-disable-next-line no-console
@@ -237,9 +235,7 @@ export function initializeTelemetry(cfg: TelemetryConfig): NodeSDK | null {
 
   // Development fallback: console
   if (spanProcessors.length === 0 && process.env.NODE_ENV === 'development') {
-    const {
-      ConsoleSpanExporter,
-    } = require('@opentelemetry/sdk-trace-base');
+    const { ConsoleSpanExporter } = require('@opentelemetry/sdk-trace-base');
     spanProcessors.push(new BatchSpanProcessor(new ConsoleSpanExporter()));
   }
 
@@ -262,7 +258,7 @@ export function initializeTelemetry(cfg: TelemetryConfig): NodeSDK | null {
     sampler: new ParentBasedSampler({
       root: new CustomSampler(
         cfg.sampleRateSuccess,
-        cfg.slowRequestThresholdMs,
+        cfg.slowRequestThresholdMs
       ) as any,
     }),
   });
@@ -293,7 +289,7 @@ export function initializeTelemetry(cfg: TelemetryConfig): NodeSDK | null {
 /** Returns the application tracer (lazy singleton). */
 export function getTracer(
   name = 'soroban-playground',
-  version = '1.0.0',
+  version = '1.0.0'
 ): ReturnType<typeof trace.getTracer> {
   return trace.getTracer(name, version);
 }
@@ -305,7 +301,7 @@ export function getTracer(
 export function createSpan(
   name: string,
   attributes: Record<string, unknown> = {},
-  options: SpanOptions = {},
+  options: SpanOptions = {}
 ): Span {
   const span = getTracer().startSpan(name, options);
   if (Object.keys(attributes).length > 0) {
@@ -322,7 +318,7 @@ export function withSpan<T>(
   name: string,
   fn: (span: Span) => Promise<T>,
   attributes: Record<string, unknown> = {},
-  options: SpanOptions = {},
+  options: SpanOptions = {}
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const span = createSpan(name, attributes, options);
@@ -374,7 +370,7 @@ export function getTraceId(): string | undefined {
  * forwarding to child processes (Cargo build, Soroban CLI, etc.).
  */
 export function injectTraceEnv(
-  env: Record<string, string> = {},
+  env: Record<string, string> = {}
 ): Record<string, string> {
   const span = trace.getActiveSpan();
   if (!span) return env;

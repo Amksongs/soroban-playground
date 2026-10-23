@@ -146,8 +146,7 @@ class LruKStore {
         entry.accesses.length < 2 ? -Infinity : entry.accesses[0];
       if (
         priority < candidatePriority ||
-        (priority === candidatePriority &&
-          firstAccess < candidateFirstAccess)
+        (priority === candidatePriority && firstAccess < candidateFirstAccess)
       ) {
         candidateKey = key;
         candidatePriority = priority;
@@ -175,8 +174,7 @@ export class TieredCache {
     this.redis = opts.redis ?? redisService;
     this.l1TtlMs = opts.l1TtlMs ?? L1_TTL_MS;
     this.l2TtlS = opts.l2TtlS ?? L2_TTL_S;
-    this.invalidationChannel =
-      opts.invalidationChannel ?? INVALIDATION_CHANNEL;
+    this.invalidationChannel = opts.invalidationChannel ?? INVALIDATION_CHANNEL;
     this.inflight = new Map();
     this.generations = new Map();
     this.l1 = new LruKStore({
@@ -220,13 +218,12 @@ export class TieredCache {
     const pending = this.inflight.get(key);
     if (pending) return pending;
 
-    const promise = this.#load(key, fetchFn)
-      .finally(() => {
-        if (this.inflight.get(key) === promise) {
-          this.inflight.delete(key);
-          this.generations.delete(key);
-        }
-      });
+    const promise = this.#load(key, fetchFn).finally(() => {
+      if (this.inflight.get(key) === promise) {
+        this.inflight.delete(key);
+        this.generations.delete(key);
+      }
+    });
     this.inflight.set(key, promise);
     return promise;
   }

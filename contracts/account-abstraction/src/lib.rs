@@ -14,8 +14,7 @@ use soroban_sdk::{
     auth::{Context, CustomAccountInterface},
     contract, contracterror, contractimpl, contracttype,
     crypto::Hash,
-    symbol_short,
-    vec, Address, BytesN, Env, Symbol, Vec,
+    symbol_short, vec, Address, BytesN, Env, Symbol, Vec,
 };
 
 // ---------------------------------------------------------------------------
@@ -121,11 +120,7 @@ impl SmartWallet {
     /// `guardian_threshold` must be ≥ 1.  The owner adds guardians separately
     /// with `add_guardian`; the threshold is the minimum number of guardian
     /// approvals required to execute a recovery.
-    pub fn initialize(
-        env: Env,
-        owner: BytesN<32>,
-        guardian_threshold: u32,
-    ) -> Result<(), Error> {
+    pub fn initialize(env: Env, owner: BytesN<32>, guardian_threshold: u32) -> Result<(), Error> {
         let storage = env.storage().instance();
 
         if storage.has(&DataKey::Owner) {
@@ -162,11 +157,7 @@ impl SmartWallet {
     /// `require_auth` so that Soroban verifies the caller's authorisation.
     /// The new owner key replaces the stored key without changing the contract
     /// address.
-    pub fn rotate_owner(
-        env: Env,
-        caller: Address,
-        new_owner: BytesN<32>,
-    ) -> Result<(), Error> {
+    pub fn rotate_owner(env: Env, caller: Address, new_owner: BytesN<32>) -> Result<(), Error> {
         caller.require_auth();
 
         let storage = env.storage().instance();
@@ -187,11 +178,7 @@ impl SmartWallet {
     // -----------------------------------------------------------------------
 
     /// Add a new guardian.  Only the owner (`caller`) may call this.
-    pub fn add_guardian(
-        env: Env,
-        caller: Address,
-        guardian: Address,
-    ) -> Result<(), Error> {
+    pub fn add_guardian(env: Env, caller: Address, guardian: Address) -> Result<(), Error> {
         caller.require_auth();
 
         let storage = env.storage().instance();
@@ -216,11 +203,7 @@ impl SmartWallet {
     }
 
     /// Remove an existing guardian.  Only the owner (`caller`) may call this.
-    pub fn remove_guardian(
-        env: Env,
-        caller: Address,
-        guardian: Address,
-    ) -> Result<(), Error> {
+    pub fn remove_guardian(env: Env, caller: Address, guardian: Address) -> Result<(), Error> {
         caller.require_auth();
 
         let storage = env.storage().instance();
@@ -277,41 +260,41 @@ impl SmartWallet {
 
         let current_ledger = env.ledger().sequence();
 
-        let proposal: RecoveryProposal =
-            if let Some(existing) = storage.get::<_, RecoveryProposal>(&DataKey::RecoveryProposal)
-            {
-                if existing.executed {
-                    // Previous recovery was executed; start fresh.
-                    RecoveryProposal {
-                        new_owner: new_owner.clone(),
-                        approvals: 1,
-                        initiated_ledger: current_ledger,
-                        executed: false,
-                    }
-                } else if existing.new_owner == new_owner {
-                    // Same target — add approval.
-                    RecoveryProposal {
-                        approvals: existing.approvals + 1,
-                        ..existing
-                    }
-                } else {
-                    // Different target — restart.
-                    RecoveryProposal {
-                        new_owner: new_owner.clone(),
-                        approvals: 1,
-                        initiated_ledger: current_ledger,
-                        executed: false,
-                    }
-                }
-            } else {
-                // No proposal yet.
+        let proposal: RecoveryProposal = if let Some(existing) =
+            storage.get::<_, RecoveryProposal>(&DataKey::RecoveryProposal)
+        {
+            if existing.executed {
+                // Previous recovery was executed; start fresh.
                 RecoveryProposal {
                     new_owner: new_owner.clone(),
                     approvals: 1,
                     initiated_ledger: current_ledger,
                     executed: false,
                 }
-            };
+            } else if existing.new_owner == new_owner {
+                // Same target — add approval.
+                RecoveryProposal {
+                    approvals: existing.approvals + 1,
+                    ..existing
+                }
+            } else {
+                // Different target — restart.
+                RecoveryProposal {
+                    new_owner: new_owner.clone(),
+                    approvals: 1,
+                    initiated_ledger: current_ledger,
+                    executed: false,
+                }
+            }
+        } else {
+            // No proposal yet.
+            RecoveryProposal {
+                new_owner: new_owner.clone(),
+                approvals: 1,
+                initiated_ledger: current_ledger,
+                executed: false,
+            }
+        };
 
         storage.set(&DataKey::RecoveryProposal, &proposal);
 
@@ -445,9 +428,7 @@ impl SmartWallet {
         let storage = env.storage().instance();
         let sk_key = DataKey::SessionKey(session_key.clone());
 
-        let mut record: SessionKeyRecord = storage
-            .get(&sk_key)
-            .ok_or(Error::SessionKeyNotFound)?;
+        let mut record: SessionKeyRecord = storage.get(&sk_key).ok_or(Error::SessionKeyNotFound)?;
 
         record.active = false;
         storage.set(&sk_key, &record);
@@ -460,17 +441,12 @@ impl SmartWallet {
 
     /// Return `true` if the session key is active, not expired, and the
     /// `function_name` is in its allowed list.
-    pub fn is_session_key_valid(
-        env: Env,
-        session_key: Address,
-        function_name: Symbol,
-    ) -> bool {
+    pub fn is_session_key_valid(env: Env, session_key: Address, function_name: Symbol) -> bool {
         let storage = env.storage().instance();
-        let record: SessionKeyRecord =
-            match storage.get(&DataKey::SessionKey(session_key)) {
-                Some(r) => r,
-                None => return false,
-            };
+        let record: SessionKeyRecord = match storage.get(&DataKey::SessionKey(session_key)) {
+            Some(r) => r,
+            None => return false,
+        };
 
         if !record.active {
             return false;
@@ -599,11 +575,8 @@ impl CustomAccountInterface for SmartWallet {
         // ------------------------------------------------------------------
         // Step 2 – Verify the owner ed25519 signature.
         // ------------------------------------------------------------------
-        env.crypto().ed25519_verify(
-            &owner,
-            &signature_payload.into(),
-            &signature,
-        );
+        env.crypto()
+            .ed25519_verify(&owner, &signature_payload.into(), &signature);
 
         Ok(())
     }

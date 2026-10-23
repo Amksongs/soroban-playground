@@ -43,7 +43,11 @@ type HealthState = "checking" | "online" | "offline";
 type ActionMode = "register" | "mint" | "collateral" | "trade" | "oracle";
 type Direction = "Long" | "Short";
 type TxStatus =
-  "queued" | "awaiting_wallet" | "submitted" | "confirmed" | "failed";
+  | "queued"
+  | "awaiting_wallet"
+  | "submitted"
+  | "confirmed"
+  | "failed";
 
 type SyntheticAsset = {
   symbol: string;
@@ -1843,6 +1847,7 @@ function InputField({
     <div className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
       <input
+        aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/50"
@@ -1866,6 +1871,7 @@ function SelectField({
     <div className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
       <select
+        aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/50"

@@ -19,9 +19,7 @@
 
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol};
 
 // ────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -166,7 +164,11 @@ impl SubscriptionStream {
         }
 
         let now = env.ledger().timestamp();
-        let id: u64 = env.storage().instance().get(&DataKey::StreamCount).unwrap_or(0);
+        let id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::StreamCount)
+            .unwrap_or(0);
         let stream = StreamData {
             sender: sender.clone(),
             recipient: recipient.clone(),
@@ -177,10 +179,17 @@ impl SubscriptionStream {
             claimed: 0,
             status: StreamStatus::Active,
         };
-        env.storage().persistent().set(&DataKey::Stream(id), &stream);
-        env.storage().instance().set(&DataKey::StreamCount, &(id + 1));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Stream(id), &stream);
+        env.storage()
+            .instance()
+            .set(&DataKey::StreamCount, &(id + 1));
 
-        env.events().publish((EVT_STREAM_CREATE,), (id, sender, recipient, flow_rate, deposit));
+        env.events().publish(
+            (EVT_STREAM_CREATE,),
+            (id, sender, recipient, flow_rate, deposit),
+        );
         id
     }
 
@@ -235,8 +244,11 @@ impl SubscriptionStream {
             stream.status = StreamStatus::Cancelled;
         }
 
-        env.storage().persistent().set(&DataKey::Stream(stream_id), &stream);
-        env.events().publish((EVT_STREAM_CLAIM,), (stream_id, claimable));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Stream(stream_id), &stream);
+        env.events()
+            .publish((EVT_STREAM_CLAIM,), (stream_id, claimable));
         claimable
     }
 
@@ -260,7 +272,9 @@ impl SubscriptionStream {
         stream.claimed += accrued.max(0);
         stream.last_claim_time = now;
         stream.status = StreamStatus::Paused;
-        env.storage().persistent().set(&DataKey::Stream(stream_id), &stream);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Stream(stream_id), &stream);
         env.events().publish((EVT_STREAM_PAUSE,), (stream_id,));
     }
 
@@ -279,7 +293,9 @@ impl SubscriptionStream {
 
         stream.last_claim_time = env.ledger().timestamp();
         stream.status = StreamStatus::Active;
-        env.storage().persistent().set(&DataKey::Stream(stream_id), &stream);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Stream(stream_id), &stream);
     }
 
     /// Sender cancels a stream.  Unclaimed tokens are returned to sender.
@@ -297,8 +313,11 @@ impl SubscriptionStream {
 
         let refund = stream.deposit - stream.claimed;
         stream.status = StreamStatus::Cancelled;
-        env.storage().persistent().set(&DataKey::Stream(stream_id), &stream);
-        env.events().publish((EVT_STREAM_CANCEL,), (stream_id, refund));
+        env.storage()
+            .persistent()
+            .set(&DataKey::Stream(stream_id), &stream);
+        env.events()
+            .publish((EVT_STREAM_CANCEL,), (stream_id, refund));
         refund
     }
 
@@ -335,7 +354,11 @@ impl SubscriptionStream {
         }
 
         let now = env.ledger().timestamp();
-        let id: u64 = env.storage().instance().get(&DataKey::SubCount).unwrap_or(0);
+        let id: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::SubCount)
+            .unwrap_or(0);
         let sub = SubscriptionData {
             subscriber: subscriber.clone(),
             recipient: recipient.clone(),
@@ -428,7 +451,8 @@ impl SubscriptionStream {
         let reward = sub.amount_per_period * KEEPER_REWARD_BPS / 10_000;
 
         env.storage().persistent().set(&DataKey::Sub(sub_id), &sub);
-        env.events().publish((EVT_SUB_BILL,), (sub_id, sub.amount_per_period));
+        env.events()
+            .publish((EVT_SUB_BILL,), (sub_id, sub.amount_per_period));
         env.events().publish((EVT_KEEPER,), (keeper, reward));
 
         reward
@@ -682,7 +706,8 @@ mod tests {
         client.execute_billing(&keeper, &id);
 
         // Advance past grace period
-        env.ledger().with_mut(|l| l.timestamp += 86_401 + DEFAULT_GRACE_PERIOD_SECS);
+        env.ledger()
+            .with_mut(|l| l.timestamp += 86_401 + DEFAULT_GRACE_PERIOD_SECS);
         // Next keeper call triggers another billing window check, then auto-pauses
         env.ledger().with_mut(|l| l.timestamp += 86_400);
         client.execute_billing(&keeper, &id);

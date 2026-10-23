@@ -373,12 +373,7 @@ impl LendingPool {
     /// Enforces:
     /// - Sanity bounds: new price must not deviate > `MAX_PRICE_DEVIATION_BPS`
     ///   from the previous price (if a previous price exists).
-    pub fn submit_price(
-        env: Env,
-        admin: Address,
-        asset_id: u32,
-        price: i128,
-    ) -> Result<(), Error> {
+    pub fn submit_price(env: Env, admin: Address, asset_id: u32, price: i128) -> Result<(), Error> {
         ensure_initialized(&env)?;
         admin.require_auth();
         require_admin(&env, &admin)?;
@@ -536,7 +531,10 @@ impl LendingPool {
             return Err(Error::InsufficientBalance);
         }
 
-        let remaining_dep = pos.deposited.checked_sub(underlying).ok_or(Error::Overflow)?;
+        let remaining_dep = pos
+            .deposited
+            .checked_sub(underlying)
+            .ok_or(Error::Overflow)?;
 
         // After withdrawal the position must still be healthy.
         if pos.borrowed > 0 {
@@ -559,8 +557,10 @@ impl LendingPool {
             .ok_or(Error::Overflow)?;
         set_s_token_supply(&env, new_s_supply);
 
-        env.events()
-            .publish((symbol_short!("withdraw"), user), (s_token_amount, underlying));
+        env.events().publish(
+            (symbol_short!("withdraw"), user),
+            (s_token_amount, underlying),
+        );
         Ok(underlying)
     }
 
@@ -753,12 +753,10 @@ impl LendingPool {
 
         // Update global totals.
         let prev_total_borrow = get_total_borrowed(&env);
-        let new_total_borrow = prev_total_borrow
-            .saturating_sub(debt_to_repay);
+        let new_total_borrow = prev_total_borrow.saturating_sub(debt_to_repay);
         set_total_borrowed(&env, new_total_borrow);
 
-        let new_total_deposit = get_total_deposited(&env)
-            .saturating_sub(actual_seizure);
+        let new_total_deposit = get_total_deposited(&env).saturating_sub(actual_seizure);
         set_total_deposited(&env, new_total_deposit);
 
         // Accumulate bad debt if the position was insolvent.
@@ -779,12 +777,7 @@ impl LendingPool {
 
         env.events().publish(
             (symbol_short!("liquidate"), user.clone()),
-            (
-                liquidator,
-                debt_to_repay,
-                actual_seizure,
-                bad_debt_created,
-            ),
+            (liquidator, debt_to_repay, actual_seizure, bad_debt_created),
         );
 
         Ok(result)

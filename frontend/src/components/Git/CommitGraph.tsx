@@ -136,6 +136,9 @@ const CommitGraph: React.FC<CommitGraphProps> = ({
   return (
     <div
       data-testid="commit-graph"
+      role="region"
+      aria-label="Commit history"
+      tabIndex={0}
       className="overflow-x-auto rounded-xl border border-white/8 bg-slate-950/60"
     >
       <svg
@@ -249,12 +252,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({
                   />
                 ) : (
                   <>
-                    <circle
-                      cx={0}
-                      cy={0}
-                      r={9}
-                      fill="rgba(148,163,184,0.25)"
-                    />
+                    <circle cx={0} cy={0} r={9} fill="rgba(148,163,184,0.25)" />
                     <text
                       x={0}
                       y={3}
@@ -285,33 +283,36 @@ const CommitGraph: React.FC<CommitGraphProps> = ({
               </text>
 
               {/* Branch labels */}
-                {node.branchNames.map((branch, index) => {
-                  const labelWidth = Math.max(34, branch.length * 6 + 12);
-                  const bx = textX + index * (labelWidth + 6);
-                  const by = 38;
-                  return (
-                    <g key={`${node.id}-${branch}`} data-testid="commit-graph-branch">
-                      <rect
-                        x={bx}
-                        y={by}
-                        width={labelWidth}
-                        height={14}
-                        rx={7}
-                        fill="rgba(167,139,250,0.18)"
-                        stroke="rgba(167,139,250,0.5)"
-                      />
-                      <text
-                        x={bx + labelWidth / 2}
-                        y={by + 9.5}
-                        textAnchor="middle"
-                        fontSize={9}
-                        fill="rgb(216,180,254)"
-                      >
-                        {branch}
-                      </text>
-                    </g>
-                  );
-                })}
+              {node.branchNames.map((branch, index) => {
+                const labelWidth = Math.max(34, branch.length * 6 + 12);
+                const bx = textX + index * (labelWidth + 6);
+                const by = 38;
+                return (
+                  <g
+                    key={`${node.id}-${branch}`}
+                    data-testid="commit-graph-branch"
+                  >
+                    <rect
+                      x={bx}
+                      y={by}
+                      width={labelWidth}
+                      height={14}
+                      rx={7}
+                      fill="rgba(167,139,250,0.18)"
+                      stroke="rgba(167,139,250,0.5)"
+                    />
+                    <text
+                      x={bx + labelWidth / 2}
+                      y={by + 9.5}
+                      textAnchor="middle"
+                      fontSize={9}
+                      fill="rgb(216,180,254)"
+                    >
+                      {branch}
+                    </text>
+                  </g>
+                );
+              })}
             </g>
           );
         })}

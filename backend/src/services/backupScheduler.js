@@ -9,7 +9,8 @@ import { alertManager } from '../utils/alerting.js';
 // Daily at 02:00 server time — low-traffic window, avoids midnight log spikes.
 const DEFAULT_SCHEDULE = process.env.BACKUP_CRON_SCHEDULE || '0 2 * * *';
 // Weekly restore drill — Sunday 03:00 server time.
-const DEFAULT_DRILL_SCHEDULE = process.env.BACKUP_DRILL_CRON_SCHEDULE || '0 3 * * 0';
+const DEFAULT_DRILL_SCHEDULE =
+  process.env.BACKUP_DRILL_CRON_SCHEDULE || '0 3 * * 0';
 
 const WAL_LAG_THRESHOLD = Number.parseInt(
   process.env.WAL_LAG_THRESHOLD_SEGMENTS || '3',
@@ -19,12 +20,14 @@ const WAL_LAG_THRESHOLD = Number.parseInt(
 let _task = null;
 let _drillTask = null;
 
-function _log (level, msg, extra = {}) {
+function _log(level, msg, extra = {}) {
   const payload = { level, msg, ...extra };
   if (level === 'error') {
     logger.error(JSON.stringify(payload));
   } else if (level === 'warn') {
-    logger.warn ? logger.warn(JSON.stringify(payload)) : logger.info(JSON.stringify(payload));
+    logger.warn
+      ? logger.warn(JSON.stringify(payload))
+      : logger.info(JSON.stringify(payload));
   } else {
     logger.info(JSON.stringify(payload));
   }
@@ -36,7 +39,7 @@ function _log (level, msg, extra = {}) {
  * consecutive segments. This is called after every backup run and on a
  * dedicated interval via the WAL-G scripts.
  */
-export async function checkWalArchiveLag () {
+export async function checkWalArchiveLag() {
   try {
     const { checkWalLag } = await import('./backupService.js');
     if (typeof checkWalLag !== 'function') {
@@ -71,7 +74,7 @@ export async function checkWalArchiveLag () {
  * Runs the weekly restore drill in an isolated test environment and
  * verifies integrity of the restored database.
  */
-export async function runRestoreDrill () {
+export async function runRestoreDrill() {
   _log('info', 'backup:drill:triggered');
   try {
     const mod = await import('./backupService.js');
@@ -92,7 +95,7 @@ export async function runRestoreDrill () {
   }
 }
 
-export function startBackupScheduler (schedule = DEFAULT_SCHEDULE) {
+export function startBackupScheduler(schedule = DEFAULT_SCHEDULE) {
   if (!process.env.BACKUP_ENABLED || process.env.BACKUP_ENABLED === 'false') {
     _log('info', 'backup:scheduler:disabled', {
       hint: 'Set BACKUP_ENABLED=true to enable automated backups',
@@ -151,7 +154,7 @@ export function startBackupScheduler (schedule = DEFAULT_SCHEDULE) {
   return _task;
 }
 
-export function stopBackupScheduler () {
+export function stopBackupScheduler() {
   if (_task) {
     _task.stop();
     _task = null;

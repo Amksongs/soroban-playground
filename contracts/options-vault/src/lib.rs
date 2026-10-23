@@ -8,8 +8,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short,
-    Address, Env, Map, Symbol,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol,
 };
 
 const ADMIN_KEY: Symbol = symbol_short!("ADMIN");
@@ -70,7 +69,12 @@ impl OptionsVault {
     // ── Initialisation ──────────────────────────────────────────────────────
 
     pub fn initialize(env: Env, admin: Address, oracle: Address) -> Result<(), Error> {
-        if env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::AlreadyInitialized);
         }
         admin.require_auth();
@@ -91,12 +95,18 @@ impl OptionsVault {
             status: RoundStatus::Active,
         };
         env.storage().persistent().set(&DataKey::Round(1), &round);
-        env.events().publish((symbol_short!("init"),), (admin, oracle));
+        env.events()
+            .publish((symbol_short!("init"),), (admin, oracle));
         Ok(())
     }
 
     fn ensure_initialized(env: &Env) -> Result<(), Error> {
-        if !env.storage().instance().get(&INITIALIZED_KEY).unwrap_or(false) {
+        if !env
+            .storage()
+            .instance()
+            .get(&INITIALIZED_KEY)
+            .unwrap_or(false)
+        {
             return Err(Error::NotInitialized);
         }
         Ok(())
@@ -125,17 +135,16 @@ impl OptionsVault {
         }
 
         let dkey = DataKey::Deposit((epoch, user.clone()));
-        let prior: i128 = env
-            .storage()
-            .persistent()
-            .get(&dkey)
-            .unwrap_or(0i128);
+        let prior: i128 = env.storage().persistent().get(&dkey).unwrap_or(0i128);
         env.storage().persistent().set(&dkey, &(prior + amount));
 
         round.collateral += amount;
-        env.storage().persistent().set(&DataKey::Round(epoch), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(epoch), &round);
 
-        env.events().publish((symbol_short!("deposit"),), (user, epoch, amount));
+        env.events()
+            .publish((symbol_short!("deposit"),), (user, epoch, amount));
         Ok(())
     }
 
@@ -179,11 +188,18 @@ impl OptionsVault {
         if round.option_tokens_issued == 0 {
             round.option_tokens_issued = 1;
         }
-        env.storage().persistent().set(&DataKey::Round(epoch), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(epoch), &round);
 
         env.events().publish(
             (symbol_short!("opt"), symbol_short!("wri")),
-            (epoch, oracle_price, strike_price, round.option_tokens_issued),
+            (
+                epoch,
+                oracle_price,
+                strike_price,
+                round.option_tokens_issued,
+            ),
         );
         Ok(())
     }
@@ -191,7 +207,12 @@ impl OptionsVault {
     // ── Dutch auction / premium ─────────────────────────────────────────────
 
     /// Records premium collected from selling option tokens to market makers.
-    pub fn collect_premium(env: Env, caller: Address, epoch: u64, premium: i128) -> Result<(), Error> {
+    pub fn collect_premium(
+        env: Env,
+        caller: Address,
+        epoch: u64,
+        premium: i128,
+    ) -> Result<(), Error> {
         Self::ensure_initialized(&env)?;
         let oracle: Address = env
             .storage()
@@ -210,10 +231,14 @@ impl OptionsVault {
             return Err(Error::RoundNotActive);
         }
         round.premium_collected += premium;
-        env.storage().persistent().set(&DataKey::Round(epoch), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(epoch), &round);
 
-        env.events()
-            .publish((symbol_short!("pre"), symbol_short!("col")), (epoch, premium));
+        env.events().publish(
+            (symbol_short!("pre"), symbol_short!("col")),
+            (epoch, premium),
+        );
         Ok(())
     }
 
@@ -257,11 +282,19 @@ impl OptionsVault {
             round.collateral = round.collateral + round.premium_collected;
         }
 
-        env.storage().persistent().set(&DataKey::Round(epoch), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(epoch), &round);
 
         env.events().publish(
             (symbol_short!("rnd"), symbol_short!("set")),
-            (epoch, oracle_price, round.strike_price, payout, round.collateral),
+            (
+                epoch,
+                oracle_price,
+                round.strike_price,
+                payout,
+                round.collateral,
+            ),
         );
         Ok(payout)
     }
@@ -290,13 +323,17 @@ impl OptionsVault {
             settled: false,
             status: RoundStatus::Active,
         };
-        env.storage().persistent().set(&DataKey::Round(next_epoch), &next_round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(next_epoch), &next_round);
         env.storage()
             .instance()
             .set(&CURRENT_EPOCH_KEY, &next_epoch);
 
-        env.events()
-            .publish((symbol_short!("rnd"), symbol_short!("rol")), (epoch, next_epoch));
+        env.events().publish(
+            (symbol_short!("rnd"), symbol_short!("rol")),
+            (epoch, next_epoch),
+        );
         Ok(next_epoch)
     }
 
@@ -311,11 +348,7 @@ impl OptionsVault {
         }
 
         let dkey = DataKey::Deposit((epoch, user.clone()));
-        let prior: i128 = env
-            .storage()
-            .persistent()
-            .get(&dkey)
-            .unwrap_or(0i128);
+        let prior: i128 = env.storage().persistent().get(&dkey).unwrap_or(0i128);
         if prior == 0 {
             return Err(Error::NotDepositor);
         }
@@ -333,9 +366,12 @@ impl OptionsVault {
 
         env.storage().persistent().set(&dkey, &(prior - amount));
         round.collateral -= amount;
-        env.storage().persistent().set(&DataKey::Round(epoch), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(epoch), &round);
 
-        env.events().publish((symbol_short!("withdraw"),), (user, epoch, amount));
+        env.events()
+            .publish((symbol_short!("withdraw"),), (user, epoch, amount));
         Ok(())
     }
 

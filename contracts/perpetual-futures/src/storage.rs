@@ -96,7 +96,9 @@ pub fn get_insurance_fund(env: &Env) -> i128 {
 }
 
 pub fn set_insurance_fund(env: &Env, amount: i128) {
-    env.storage().instance().set(&DataKey::InsuranceFund, &amount);
+    env.storage()
+        .instance()
+        .set(&DataKey::InsuranceFund, &amount);
 }
 
 pub fn get_user_collateral(env: &Env, trader: &Address) -> i128 {

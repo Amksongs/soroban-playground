@@ -14,10 +14,18 @@ export default defineConfig({
   use: {
     colorScheme: "dark",
     baseURL: "http://localhost:3000",
-    trace: "retain-on-failure",
+    trace: "off",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: process.env.PLAYWRIGHT_CHANNEL,
+      },
+    },
+  ],
   webServer: {
     command: "npm run start --workspace=frontend",
     url: "http://localhost:3000",
